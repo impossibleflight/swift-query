@@ -1,4 +1,4 @@
-//  Querying.swift
+//  Fetch.swift
 //  swift-query
 //
 //  Created by John Clayton on 2025/6/21.
@@ -24,7 +24,7 @@ public extension FetchDescriptor {
         try container.mainContext.fetch(self)
     }
 
-    func fetchResults(
+    func fetchedResults(
         in container: ModelContainer,
         batchSize: Int = 20
     ) throws -> FetchResultsCollection<T> {

@@ -1,4 +1,4 @@
-//  AsyncQuerying.swift
+//  Fetch+Concurrency.swift
 //  swift-query
 //
 //  Created by John Clayton on 2025/6/21.
@@ -24,7 +24,7 @@ public extension FetchDescriptor {
     }
 
     /// Error: Pattern that the region based isolation checker does not understand how to check. Please file a bug
-//    func fetchResults(
+//    func fetchedResults(
 //        batchSize: Int = 20,
 //        isolation: isolated (any ModelActor) = #isolation
 //    ) throws -> FetchResultsCollection<T> {

@@ -7,7 +7,9 @@
 import Foundation
 import SwiftData
 
-public extension FetchDescriptor {
+public typealias Query = FetchDescriptor
+
+public extension Query {
     func filter(_ predicate: Predicate<T>) -> Self {
         FetchDescriptor(predicate: predicate, sortBy: sortBy)
     }
@@ -16,7 +18,7 @@ public extension FetchDescriptor {
         FetchDescriptor(predicate: predicate(), sortBy: sortBy)
     }
 
-    func sort(_ sortDescriptor: SortDescriptor<T>) -> Self {
+    func sortBy(_ sortDescriptor: SortDescriptor<T>) -> Self {
         FetchDescriptor(predicate: predicate, sortBy: sortBy + [sortDescriptor])
     }
 
@@ -31,6 +33,15 @@ public extension FetchDescriptor {
         }
 
         return FetchDescriptor(predicate: excludePredicate, sortBy: sortBy)
+    }
+
+    subscript(_ range: Range<Int>) -> Self {
+        get {
+            var descriptor = FetchDescriptor(predicate: predicate, sortBy: sortBy)
+            descriptor.fetchOffset = range.lowerBound
+            descriptor.fetchLimit = range.upperBound - range.lowerBound
+            return descriptor
+        }
     }
 }
 
