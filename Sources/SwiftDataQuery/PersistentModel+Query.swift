@@ -8,19 +8,25 @@ import Foundation
 import SwiftData
 
 extension PersistentModel {
-    static func filtered(_ predicate: Predicate<Self>) -> FetchDescriptor<Self> {
-        FetchDescriptor(predicate: predicate)
+    static func include(_ predicate: Predicate<Self>) -> Query<Self> {
+        query().include(predicate)
     }
 
-    static func filtered(_ predicate: () -> Predicate<Self>) -> FetchDescriptor<Self> {
-        FetchDescriptor(predicate: predicate())
+    static func exclude(_ predicate: Predicate<Self>) -> Query<Self> {
+        query().exclude(predicate)
     }
 
-    static func sorted(_ sortDescriptor: SortDescriptor<Self>) -> FetchDescriptor<Self> {
-        FetchDescriptor(sortBy: [sortDescriptor])
+    static func sortBy(_ sortDescriptor: SortDescriptor<Self>) -> Query<Self> {
+        query().sortBy(sortDescriptor)
     }
 
-    static func query(_ fetchDescriptor: FetchDescriptor<Self> = .init()) -> FetchDescriptor<Self> {
+    static func query(_ fetchDescriptor: Query<Self> = .init()) -> Query<Self> {
         fetchDescriptor
+    }
+
+    static subscript(_ range: Range<Int>) -> Query<Self> {
+        get {
+            query()[range]
+        }
     }
 }

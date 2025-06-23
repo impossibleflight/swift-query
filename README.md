@@ -24,14 +24,14 @@ Task.detached {
 ### Building Queries
 
 Queries are an expressive layer on top of Swift Data that allow us to quickly build 
-complex fetch decriptors by successively applying filters. The resulting query can 
+complex fetch decriptors by successively applying refinements. The resulting query can 
 be saved for reuse or performed immediately. 
 
 Queries can be initialized explicitly, but `PersistentModel` has also been extended 
 so the result type can be inferred from the context:
 
 ```swift    
-    let query = Person.filter(#Predicate { \.name == "John" })
+let query = Person.filter(#Predicate { \.name == "John" })
 ```
 
 #### Fetching all objects
@@ -40,11 +40,12 @@ The simplest query has no filters at all, and returns all objects when performed
 
 ```swift
 Query<Person>()
+Person.query()
 ``` 
 
 #### Narrowing a query
 
-Queries can be narrowed by selecting or excluding candidate objects by predicate:
+Queries can be narrowed by selecting or excluding candidate objects using predicates:
 
 ```swift
 Person.filter(#Predicate { \.name == "John" })
@@ -60,8 +61,8 @@ Person.
     .sortBy(.init(\.age, order: .reverse))
 ``` 
 
-Successive orderings are appended. The following will order by age, then, within 
-age groups, by name:
+Successive orderings are cumulative. The following will order by age, then by name within 
+age groups:
 
 ```swift
 Person.
@@ -82,7 +83,7 @@ This allows for functionality like toggling the direction of a complex sort.
 
 #### Chaining refinements
 
-The result of refining a query is another query, so they can be chained indefinitely:
+The result of refining a query is another query, so refinements can be chained indefinitely:
 
 ```swift
 Person
@@ -91,27 +92,34 @@ Person
     .sortBy(.init(\.name))
 ```
 
-#### Limiting a query
+#### Limiting the size of the result set of a query
 
 Often we want to fetch just a slice of a full result set. We can pass a range representing
-`fetchOffset` and `fetchLimit` to the subscript on a query and get a new query that 
+indices of the first and last elements we want to the subscript on a query and get a new query that 
 will only fetch that part of the result set:
 
 ```swift
-terriesQuery[0..<5]
+Person.sortBy(.init(\.age))[0..<5]
 ```
 
-The query above will fetch Terries 1-5. The next query would fetch Terries 6-10:
+The query above will fetch the first five people. The next query would fetch persons 6-10:
 
 ```swift
-terriesQuery[5..<10]
+Person.sortBy(.init(\.age))[5..<10]
+```
+
+It's even possible to get an arbitrary sampling of five people. Since no ordering has
+been applied to this query, we'll just get the first five results:
+
+```swift
+Person[0..<5]
 ```
 
 ### Fetching results
 
 Queries are just descriptions of how to fetch objects from a context. To make them 
 useful, we want to be able to perform them. When fetching results on the main actor,
-we pass in our model container and SwiftQuery will use the container's 'main context.
+we pass in our model container and SwiftQuery will use the container's main context.
 
 #### Fetching one result
 
@@ -180,8 +188,9 @@ actor MyActor {
     }
 }
 ```
-We also expose async functions on `ModelContainer` that allow you to implicitly use our own
-`QueryActor` to run queries:
+
+We also expose an async `perform` function on `ModelContainer` that allow you to 
+implicitly use SwiftQuery's `QueryActor` to run queries:
 
 ```swift
 let allTerries = try await modelContainer.perform {
@@ -191,7 +200,7 @@ let allTerries = try await modelContainer.perform {
 }
 ``` 
 
-You can of course use this model actor explicitly in a task:
+You can of course pass this (or any) model actor explicitly as the isolation context:
 
 ```swift
 Task {
