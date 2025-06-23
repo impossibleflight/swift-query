@@ -6,7 +6,7 @@ A simple query language for Swift Data with automatic support for Swift concurre
 ```swift
 // Main context
 let people = Query<Person>()
-    .filter(#Predicate { $0.age >= 18 } )
+    .include(#Predicate { $0.age >= 18 } )
     .sort(.init(\.age))
     .results(in: modelContainer)
 
@@ -14,7 +14,7 @@ let people = Query<Person>()
 Task.detached {
     let people = await modelContainer.perform {
         Query<Person>()
-            .filter(#Predicate { $0.age >= 18 } )
+            .include(#Predicate { $0.age >= 18 } )
             .sort(.init(\.age))
             .results()
     }
@@ -31,7 +31,7 @@ Queries can be initialized explicitly, but `PersistentModel` has also been exten
 so the result type can be inferred from the context:
 
 ```swift    
-let query = Person.filter(#Predicate { \.name == "John" })
+let query = Person.include(#Predicate { \.name == "John" })
 ```
 
 #### Fetching all objects
@@ -48,7 +48,7 @@ Person.query()
 Queries can be narrowed by selecting or excluding candidate objects using predicates:
 
 ```swift
-Person.filter(#Predicate { \.name == "John" })
+Person.include(#Predicate { \.name == "John" })
 Person.exclude(#Predicate { \.age > 25 })
 ```
 
@@ -87,7 +87,7 @@ The result of refining a query is another query, so refinements can be chained i
 
 ```swift
 Person
-    .filter(#Predicate { \.name == "John" })
+    .include(#Predicate { \.name == "John" })
     .exclude(#Predicate { \.age > 25 })
     .sortBy(.init(\.name))
 ```
@@ -126,7 +126,7 @@ we pass in our model container and SwiftQuery will use the container's main cont
 Often we just want 
  
 ```swift
-let terryQuery = Person.filter(#Predicate { \.name == "Terry" })
+let terryQuery = Person.include(#Predicate { \.name == "Terry" })
 
 let terry = terryQuery.first(in: modelContainer)
 let lastTerry  = terryQuery.last(in: modelContainer)
@@ -148,7 +148,7 @@ Sometimes we want a result that is lazily evaluated. For these cases we can get 
 
 ```swift
 let lazyAdults = Person
-    .filter(#Predicate { \.age > 25 })
+    .include(#Predicate { \.age > 25 })
     .fetchedResults(in: modelContainer)
 ```
 
@@ -160,7 +160,7 @@ does not yet exist. This is easy with SwiftQuery using `findOrCreate`:
 
 ```swift
 let terry = Person
-    .filter(#Predicate { \.name == "Terry" })
+    .include(#Predicate { \.name == "Terry" })
     .findOrCreate(in: container) {
         Person(name: "Terry")
     }
@@ -179,7 +179,7 @@ queries inside the actor:
 actor MyActor {
     func promoteTerry() throws {
         if let terry = Person
-            .filter(#Predicate { \.name == "Terry" })
+            .include(#Predicate { \.name == "Terry" })
             .first() 
         {
             terry.isPromoted = true
@@ -195,7 +195,7 @@ implicitly use SwiftQuery's `QueryActor` to run queries:
 ```swift
 let allTerries = try await modelContainer.perform {
     Person
-        .filter(#Predicate { \.name == "Terry" })
+        .include(#Predicate { \.name == "Terry" })
         .results()
 }
 ``` 
@@ -206,7 +206,7 @@ You can of course pass this (or any) model actor explicitly as the isolation con
 Task {
     let actor = QueryActor(modelContainer: myModelContainer)
     let allTerries = try await Person
-        .filter(#Predicate { \.name == "Terry" })
+        .include(#Predicate { \.name == "Terry" })
         .results(isolation: actor)
 }
 ```
