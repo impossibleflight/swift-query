@@ -1,9 +1,3 @@
-//  PersistentModel+Query.swift
-//  swift-query
-//
-//  Created by John Clayton on 2025/4/14.
-//  Copyright © 2025 Impossible Flight, LLC. All rights reserved.
-//
 import Foundation
 import SwiftData
 

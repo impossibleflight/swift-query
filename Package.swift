@@ -7,6 +7,7 @@ let package = Package(
     name: "swift-query",
     platforms: [
         .iOS(.v18),
+        .macOS(.v14),
         .watchOS(.v11)
     ],
     products: [
@@ -16,7 +17,9 @@ let package = Package(
             targets: ["SwiftQuery"]
         ),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.4.3"),
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
@@ -28,6 +31,7 @@ let package = Package(
             name: "SwiftQueryTests",
             dependencies: [
                 "SwiftQuery",
+                .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
             ]
         ),
     ],

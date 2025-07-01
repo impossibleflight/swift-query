@@ -1,9 +1,3 @@
-//  PersistentModel+Fetch.swift
-//  swift-query
-//
-//  Created by John Clayton on 2025/6/22.
-//  Copyright © 2025 Impossible Flight, LLC. All rights reserved.
-//
 import SwiftData
 
 @MainActor
@@ -21,7 +15,7 @@ extension PersistentModel {
     }
 
     static func findOrCreate(
-        container: ModelContainer,
+        in container: ModelContainer,
         body: () -> Self
     ) throws -> Self {
         try query().findOrCreate(in: container, body: body)

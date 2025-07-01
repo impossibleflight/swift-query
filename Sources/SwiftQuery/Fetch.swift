@@ -1,14 +1,8 @@
-//  Fetch.swift
-//  swift-query
-//
-//  Created by John Clayton on 2025/6/21.
-//  Copyright © 2025 Impossible Flight, LLC. All rights reserved.
-//
 import Foundation
 import SwiftData
 
 @MainActor
-public extension FetchDescriptor {
+public extension Query {
     func first(in container: ModelContainer) throws -> T? {
         var descriptor = self
         descriptor.fetchLimit = 1
@@ -16,7 +10,7 @@ public extension FetchDescriptor {
         return result.first
     }
 
-    func last(container: ModelContainer) throws -> T? {
+    func last(in container: ModelContainer) throws -> T? {
         try reverse().first(in: container)
     }
 
@@ -43,6 +37,9 @@ public extension FetchDescriptor {
         in container: ModelContainer,
         body: () -> T
     ) throws -> T {
+        guard predicate != nil else {
+            throw Error.missingPredicate
+        }
         guard let found = try first(in: container) else {
             let created = body()
             container.mainContext.insert(created)
@@ -52,6 +49,22 @@ public extension FetchDescriptor {
     }
 
     func delete(in container: ModelContainer) throws {
-        try container.mainContext.delete(model: T.self, where: self.predicate)
+        let results = try results(in: container)
+        results.forEach {
+            container.mainContext.delete($0)
+        }
+    }
+}
+
+public extension Query {
+    enum Error: Swift.Error, LocalizedError {
+        case missingPredicate
+
+        public var errorDescription: String? {
+            switch self {
+            case .missingPredicate:
+                return "Cannot find without a predicate"
+            }
+        }
     }
 }

@@ -31,7 +31,7 @@ Queries can be initialized explicitly, but `PersistentModel` has also been exten
 so the result type can be inferred from the context:
 
 ```swift    
-let query = Person.include(#Predicate { $0.name == "John" })
+let query = Person.include(#Predicate { $0.name == "Jack" })
 ```
 
 #### Fetching all objects
@@ -48,7 +48,7 @@ Person.query()
 Queries can be narrowed by selecting or excluding candidate objects using predicates:
 
 ```swift
-Person.include(#Predicate { $0.name == "John" })
+Person.include(#Predicate { $0.name == "Jack" })
 Person.exclude(#Predicate { $0.age > 25 })
 ```
 
@@ -87,7 +87,7 @@ The result of refining a query is another query, so refinements can be chained i
 
 ```swift
 Person
-    .include(#Predicate { $0.name == "John" })
+    .include(#Predicate { $0.name == "Jack" })
     .exclude(#Predicate { $0.age > 25 })
     .sortBy(.init(\.name))
 ```
@@ -126,10 +126,10 @@ we pass in our model container and SwiftQuery will use the container's main cont
 Often we just want 
  
 ```swift
-let terryQuery = Person.include(#Predicate { $0.name == "Terry" })
+let jillQuery = Person.include(#Predicate { $0.name == "Jill" })
 
-let terry = terryQuery.first(in: modelContainer)
-let lastTerry  = terryQuery.last(in: modelContainer)
+let jill = jillQuery.first(in: modelContainer)
+let lastJill  = jillQuery.last(in: modelContainer)
 ```
 
 #### Fetching all results
@@ -137,8 +137,8 @@ let lastTerry  = terryQuery.last(in: modelContainer)
 When we want to fetch all query results in memory, we can use `results`:
  
 ```swift
-let notTerryQuery = Person.exclude(#Predicate { $0.name == "Terry" })
-let notTerries = notTerryQuery.results(in: modelContainer)
+let notJillQuery = Person.exclude(#Predicate { $0.name == "Jill" })
+let notJills = notJillQuery.results(in: modelContainer)
 ```
 
 #### Lazy results
@@ -159,10 +159,10 @@ based on a set of filters, or create a new one by default in the case that objec
 does not yet exist. This is easy with SwiftQuery using `findOrCreate`:
 
 ```swift
-let terry = Person
-    .include(#Predicate { $0.name == "Terry" })
+let jill = Person
+    .include(#Predicate { $0.name == "Jill" })
     .findOrCreate(in: container) {
-        Person(name: "Terry")
+        Person(name: "Jill")
     }
 }
 ```
@@ -177,12 +177,12 @@ queries inside the actor:
 ```swift
 @ModelActor
 actor MyActor {
-    func promoteTerry() throws {
-        if let terry = Person
-            .include(#Predicate { $0.name == "Terry" })
+    func promoteJill() throws {
+        if let jill = Person
+            .include(#Predicate { $0.name == "Jill" })
             .first() 
         {
-            terry.isPromoted = true
+            jill.isPromoted = true
             try modelContext.save()
         }
     }
@@ -193,9 +193,9 @@ We also expose an async `perform` function on `ModelContainer` that allow you to
 implicitly use SwiftQuery's `QueryActor` to run queries:
 
 ```swift
-let allTerries = try await modelContainer.perform {
+let allJills = try await modelContainer.perform {
     Person
-        .include(#Predicate { $0.name == "Terry" })
+        .include(#Predicate { $0.name == "Jill" })
         .results()
 }
 ``` 
@@ -205,8 +205,8 @@ You can of course pass this (or any) model actor explicitly as the isolation con
 ```swift
 Task {
     let actor = QueryActor(modelContainer: myModelContainer)
-    let allTerries = try await Person
-        .include(#Predicate { $0.name == "Terry" })
+    let allJills = try await Person
+        .include(#Predicate { $0.name == "Jill" })
         .results(isolation: actor)
 }
 ```

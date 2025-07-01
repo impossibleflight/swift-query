@@ -1,13 +1,7 @@
-//  Fetch+Concurrency.swift
-//  swift-query
-//
-//  Created by John Clayton on 2025/6/21.
-//  Copyright © 2025 Impossible Flight, LLC. All rights reserved.
-//
 import Foundation
 import SwiftData
 
-public extension FetchDescriptor {
+public extension Query {
     func first(isolation: isolated (any ModelActor) = #isolation) throws -> T? {
         var descriptor = self
         descriptor.fetchLimit = 1
@@ -43,6 +37,9 @@ public extension FetchDescriptor {
         isolation: isolated (any ModelActor) = #isolation,
         body: () -> T
     ) throws -> T {
+        guard predicate != nil else {
+            throw Error.missingPredicate
+        }
         guard let found = try first() else {
             let created = body()
             isolation.modelContext.insert(created)
@@ -52,6 +49,9 @@ public extension FetchDescriptor {
     }
 
     func delete(isolation: isolated (any ModelActor) = #isolation) throws {
-        try isolation.modelContext.delete(model: T.self, where: self.predicate)
+        let results = try results()
+        for object in results {
+            isolation.modelContext.delete(object)
+        }
     }
 }
