@@ -7,7 +7,7 @@ let package = Package(
     name: "swift-query",
     platforms: [
         .iOS(.v18),
-        .macOS(.v14),
+        .macOS(.v15),
         .watchOS(.v11)
     ],
     products: [
