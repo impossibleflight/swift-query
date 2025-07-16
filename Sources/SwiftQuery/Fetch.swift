@@ -6,7 +6,7 @@ public extension Query {
     func first(in container: ModelContainer) throws -> T? {
         var descriptor = self
         descriptor.fetchLimit = 1
-        let result = try container.mainContext.fetch(descriptor)
+        let result = try container.mainContext.fetch(fetchDescriptor)
         return result.first
     }
 
@@ -15,18 +15,18 @@ public extension Query {
     }
 
     func results(in container: ModelContainer) throws -> [T] {
-        try container.mainContext.fetch(self)
+        try container.mainContext.fetch(fetchDescriptor)
     }
 
     func fetchedResults(
         in container: ModelContainer,
         batchSize: Int = 20
     ) throws -> FetchResultsCollection<T> {
-        try container.mainContext.fetch(self, batchSize: batchSize)
+        try container.mainContext.fetch(fetchDescriptor, batchSize: batchSize)
     }
 
     func count(in container: ModelContainer) throws -> Int {
-        try container.mainContext.fetchCount(self)
+        try container.mainContext.fetchCount(fetchDescriptor)
     }
 
     func isEmpty(in container: ModelContainer) throws -> Bool {

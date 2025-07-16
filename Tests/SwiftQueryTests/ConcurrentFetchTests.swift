@@ -48,7 +48,7 @@ struct ConcurrentFetchTests {
 
             query = Query<Person>()
                 .include(#Predicate { $0.age > 18 })
-                .sortBy(.init(\.age))
+                .sortBy(\.age)
             result = try query.first()
             #expect(result?.age == 19)
         }
@@ -64,7 +64,7 @@ struct ConcurrentFetchTests {
 
             query = Query<Person>()
                 .include(#Predicate { $0.age > 18 })
-                .sortBy(.init(\.age))
+                .sortBy(\.age)
             result = try query.last()
             #expect(result?.age == 91)
         }
@@ -86,7 +86,7 @@ struct ConcurrentFetchTests {
         try await modelContainer.queryActor().perform { _ in
             var query = Query<Person>()
                 .exclude(#Predicate { $0.name == "Karina" })
-                .sortBy(.init(\.name))
+                .sortBy(\.name)
 
             var result = try query
                 .first()
@@ -94,7 +94,7 @@ struct ConcurrentFetchTests {
 
             query = Query<Person>()
                 .exclude(#Predicate { $0.age > 18 })
-                .sortBy(.init(\.age))
+                .sortBy(\.age)
 
             result = try query.first()
             #expect(result?.age == 16)
@@ -105,14 +105,14 @@ struct ConcurrentFetchTests {
         try await modelContainer.queryActor().perform { _ in
             var query = Query<Person>()
                 .exclude(#Predicate { $0.name == "Karina" })
-                .sortBy(.init(\.name))
+                .sortBy(\.name)
 
             var result = try query.last()
             #expect(result?.name == "William")
 
             query = Query<Person>()
                 .exclude(#Predicate { $0.age > 18 })
-                .sortBy(.init(\.age))
+                .sortBy(\.age)
 
             result = try query.last()
             #expect(result?.age == 91)

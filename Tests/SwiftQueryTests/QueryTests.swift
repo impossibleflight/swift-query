@@ -47,40 +47,40 @@ struct QueryTests {
     }
 
     @Test func sortByKeyPath() async throws {
-        let query = Person.sortBy(.init(\.name))
+        let query = Person.sortBy(\.name)
         let byNameForward =  models.sorted { $0.name < $1.name }
-        #expect(models.sorted(using: query.sortBy) == byNameForward)
+        #expect(models.sorted(using: query.sortDescriptors) == byNameForward)
     }
 
     @Test func sortByKeyPathAndDirection() async throws {
-        let query = Person.sortBy(.init(\.name, order: .reverse))
+        let query = Person.sortBy(\.name, order: .reverse)
         let byNameReversed =  models.sorted { $0.name > $1.name }
-        #expect(models.sorted(using: query.sortBy) == byNameReversed)
+        #expect(models.sorted(using: query.sortDescriptors) == byNameReversed)
     }
 
     @Test func sortByMultiple() async throws {
         let query = Person
-            .sortBy(.init(\.name))
-            .sortBy(.init(\.age))
+            .sortBy(\.name)
+            .sortBy(\.age)
 
         let descriptors = [SortDescriptor<Person>(\.name), SortDescriptor<Person>(\.age)]
         let byNameThenAge =  models.sorted(using: descriptors)
-        #expect(models.sorted(using: query.sortBy) == byNameThenAge)
+        #expect(models.sorted(using: query.sortDescriptors) == byNameThenAge)
     }
 
     @Test func reverseSortBy() async throws {
         let query = Person
-            .sortBy(.init(\.name))
+            .sortBy(\.name)
             .reverse()
 
         let byNameReversed = models.sorted { $0.name > $1.name }
-        #expect(models.sorted(using: query.sortBy) == byNameReversed)
+        #expect(models.sorted(using: query.sortDescriptors) == byNameReversed)
     }
 
     @Test func reverseSortByMultiple() async throws {
         let query = Person
-            .sortBy(.init(\.name, order: .forward))
-            .sortBy(.init(\.age, order: .reverse))
+            .sortBy(\.name, order: .forward)
+            .sortBy(\.age, order: .reverse)
             .reverse()
 
         let descriptors: [SortDescriptor<Person>] = [
@@ -88,7 +88,7 @@ struct QueryTests {
             .init(\.age, order: .forward),
             ]
         let multipleReverseSorted = models.sorted(using: descriptors)
-        #expect(models.sorted(using: query.sortBy) == multipleReverseSorted)
+        #expect(models.sorted(using: query.sortDescriptors) == multipleReverseSorted)
     }
 
     @Test func range() async throws {

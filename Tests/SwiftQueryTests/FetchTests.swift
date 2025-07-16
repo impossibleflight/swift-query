@@ -45,7 +45,7 @@ struct FetchTests {
 
         query = Query<Person>()
             .include(#Predicate { $0.age > 18 })
-            .sortBy(.init(\.age))
+            .sortBy(\.age)
         result = try query.first(in: modelContainer)
         #expect(result?.age == 19)
     }
@@ -59,7 +59,7 @@ struct FetchTests {
 
         query = Query<Person>()
             .include(#Predicate { $0.age > 18 })
-            .sortBy(.init(\.age))
+            .sortBy(\.age)
         result = try query.last(in: modelContainer)
         #expect(result?.age == 91)
     }
@@ -77,7 +77,7 @@ struct FetchTests {
     @Test func excludeQuery_first() throws {
         var query = Query<Person>()
             .exclude(#Predicate { $0.name == "Karina" })
-            .sortBy(.init(\.name))
+            .sortBy(\.name)
 
         var result = try query
             .first(in: modelContainer)
@@ -85,7 +85,7 @@ struct FetchTests {
 
         query = Query<Person>()
             .exclude(#Predicate { $0.age > 18 })
-            .sortBy(.init(\.age))
+            .sortBy(\.age)
 
         result = try query.first(in: modelContainer)
         #expect(result?.age == 16)
@@ -94,14 +94,14 @@ struct FetchTests {
     @Test func excludeQuery_last() throws {
         var query = Query<Person>()
             .exclude(#Predicate { $0.name == "Karina" })
-            .sortBy(.init(\.name))
+            .sortBy(\.name)
 
         var result = try query.last(in: modelContainer)
         #expect(result?.name == "William")
 
         query = Query<Person>()
             .exclude(#Predicate { $0.age > 18 })
-            .sortBy(.init(\.age))
+            .sortBy(\.age)
 
         result = try query.last(in: modelContainer)
         #expect(result?.age == 91)
@@ -125,8 +125,7 @@ struct FetchTests {
 
     @Test func range() throws {
         let baseQuery = Query<Person>()
-            .sortBy(.init(\.name))
-        let baseResults = try baseQuery.results(in: modelContainer)
+            .sortBy(\.name)
 
         var rangeQuery = baseQuery[0..<5]
         var results = try rangeQuery.results(in: modelContainer)

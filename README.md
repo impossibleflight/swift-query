@@ -7,7 +7,7 @@ A simple query language for Swift Data with automatic support for Swift concurre
 // Main context
 let people = Query<Person>()
     .include(#Predicate { $0.age >= 18 } )
-    .sort(.init(\.age))
+    .sortBy(\.age)
     .results(in: modelContainer)
 
 // Or a background context
@@ -15,7 +15,7 @@ Task.detached {
     let people = await modelContainer.perform {
         Query<Person>()
             .include(#Predicate { $0.age >= 18 } )
-            .sort(.init(\.age))
+            .sortBy(\.age)
             .results()
     }
 }    
@@ -57,26 +57,25 @@ Person.exclude(#Predicate { $0.age > 25 })
 Queries allow their results to be ordered:
 
 ```swift
-Person.
-    .sortBy(.init(\.age, order: .reverse))
+Person.sortBy(\.age, order: .reverse)
 ``` 
 
 Successive orderings are cumulative. The following will order by age, then by name within 
 age groups:
 
 ```swift
-Person.
-    .sortBy(.init(\.age))
-    .sortBy(.init(\.name))
+Person
+    .sortBy(\.age)
+    .sortBy(\.name)
 ```
 
 Orderings can easily be reversed. The following revserses all previous orderings:
 
 ```swift
-Person.
-    .sortBy(.init(\.age))
-    .sortBy(.init(\.name))
-    .reversed()
+Person
+    .sortBy(\.age)
+    .sortBy(\.name)
+    .reverse()
 ```
 
 This allows for functionality like toggling the direction of a complex sort.
@@ -89,7 +88,7 @@ The result of refining a query is another query, so refinements can be chained i
 Person
     .include(#Predicate { $0.name == "Jack" })
     .exclude(#Predicate { $0.age > 25 })
-    .sortBy(.init(\.name))
+    .sortBy(\.name)
 ```
 
 #### Limiting the size of the result set of a query
@@ -99,13 +98,13 @@ indices of the first and last elements we want to the subscript on a query and g
 will only fetch that part of the result set:
 
 ```swift
-Person.sortBy(.init(\.age))[0..<5]
+Person.sortBy(\.age)[0..<5]
 ```
 
 The query above will fetch the first five people. The next query would fetch persons 6-10:
 
 ```swift
-Person.sortBy(.init(\.age))[5..<10]
+Person.sortBy(\.age)[5..<10]
 ```
 
 It's even possible to get an arbitrary sampling of five people. Since no ordering has

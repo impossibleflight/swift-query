@@ -3,7 +3,7 @@ import SwiftData
 
 public extension Query {
     func first(isolation: isolated (any ModelActor) = #isolation) throws -> T? {
-        var descriptor = self
+        var descriptor = fetchDescriptor
         descriptor.fetchLimit = 1
         let result = try isolation.modelContext.fetch(descriptor)
         return result.first
@@ -14,7 +14,7 @@ public extension Query {
     }
 
     func results(isolation: isolated (any ModelActor) = #isolation) throws -> [T] {
-        try isolation.modelContext.fetch(self)
+        try isolation.modelContext.fetch(fetchDescriptor)
     }
 
     /// Error: Pattern that the region based isolation checker does not understand how to check. Please file a bug
@@ -26,7 +26,7 @@ public extension Query {
 //    }
 
     func count(isolation: isolated (any ModelActor) = #isolation) throws -> Int {
-        try isolation.modelContext.fetchCount(self)
+        try isolation.modelContext.fetchCount(fetchDescriptor)
     }
 
     func isEmpty(isolation: isolated (any ModelActor) = #isolation) throws -> Bool {
