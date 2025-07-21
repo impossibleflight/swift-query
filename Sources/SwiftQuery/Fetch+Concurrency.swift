@@ -218,7 +218,7 @@ public extension Query {
     func findOrCreate(
         isolation: isolated (any ModelActor) = #isolation,
         body: () -> T,
-        operation: (T) -> Void,
+        operation: (T) -> Void
     ) throws {
         guard predicate != nil else {
             throw Error.missingPredicate
