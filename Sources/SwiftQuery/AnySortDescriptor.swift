@@ -1,18 +1,39 @@
 import Foundation
 
-/// A workaround for not being able to safely reverse a `SortDescriptor`
-/// (filed: FB18433460, changing the value of .order has no effect)
-/// The interface is meant to be compatible with `SortDescriptor` while retaining
-/// the ability to access the full key path so we can create a reverse descriptor
-/// dynamically.
+/// A type-erased sort descriptor that preserves the full key path in order to
+/// support order reversal. This is necessary to work around a bug in `SortDescriptor`
+/// where changing the `order` property has no effect on actual sorting behavior
+/// using the descriptor (FB18433460).
+///
+/// ## Usage
+///
+/// ```swift
+/// // Create sort descriptors
+/// let nameSort = AnySortDescriptor<Person>(\.name, order: .forward)
+/// let ageSort = AnySortDescriptor<Person>(\.age, order: .reverse)
+///
+/// // Reverse sort order reliably
+/// let reversedNameSort = nameSort.reversed()
+/// ```
+///
+/// - Note: This type is primarily used internally by `Query`. Most users should use
+///   the `Query.sortBy()` methods instead of creating `AnySortDescriptor` instances directly.
 public struct AnySortDescriptor<Compared> {
+    /// The current sort order for this descriptor.
     public var order: SortOrder = .forward
+    
+    /// Function that creates `SortDescriptor` instances with the specified order.
     public let builder: (SortOrder) -> SortDescriptor<Compared>
 
     internal var sortDescriptor: SortDescriptor<Compared> {
         builder(order)
     }
 
+    /// Creates a sort descriptor for a comparable property.
+    ///
+    /// - Parameters:
+    ///   - keyPath: Key path to the property to sort by
+    ///   - order: Sort order (forward or reverse)
     public init<Value>(
         _ keyPath: any KeyPath<Compared, Value> & Sendable,
         order: SortOrder
@@ -23,6 +44,11 @@ public struct AnySortDescriptor<Compared> {
         builder = { SortDescriptor<Compared>(keyPath, order: $0) }
     }
 
+    /// Creates a sort descriptor for an optional comparable property.
+    ///
+    /// - Parameters:
+    ///   - keyPath: Key path to the optional property to sort by
+    ///   - order: Sort order (forward or reverse)
     public init<Value>(
         _ keyPath: any KeyPath<Compared, Value?> & Sendable,
         order: SortOrder
@@ -33,7 +59,12 @@ public struct AnySortDescriptor<Compared> {
         builder = { SortDescriptor<Compared>(keyPath, order: $0) }
     }
 
-
+    /// Creates a sort descriptor for a String property with custom comparison.
+    ///
+    /// - Parameters:
+    ///   - keyPath: Key path to the String property to sort by
+    ///   - comparator: String comparison method. Defaults to localized standard.
+    ///   - order: Sort order (forward or reverse). Defaults to forward.
     public init(
         _ keyPath: any KeyPath<Compared, String> & Sendable,
         comparator: String.StandardComparator = .localizedStandard,
@@ -43,6 +74,12 @@ public struct AnySortDescriptor<Compared> {
         builder = { SortDescriptor<Compared>(keyPath, comparator: comparator, order: $0) }
     }
 
+    /// Creates a sort descriptor for an optional String property with custom comparison.
+    ///
+    /// - Parameters:
+    ///   - keyPath: Key path to the optional String property to sort by
+    ///   - comparator: String comparison method. Defaults to localized standard.
+    ///   - order: Sort order (forward or reverse). Defaults to forward.
     public init(
         _ keyPath: any KeyPath<Compared, String?> & Sendable,
         comparator: String.StandardComparator = .localizedStandard,
