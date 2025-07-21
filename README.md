@@ -1,29 +1,37 @@
 # swift-query
-A simple query language for Swift Data with automatic support for Swift concurrency.
+A simple query language for SwiftData with automatic support for Swift concurrency.
 
 ## Usage
 
 ```swift
-// Main context
+// Query from the main context
 let people = Query<Person>()
     .include(#Predicate { $0.age >= 18 } )
     .sortBy(\.age)
     .results(in: modelContainer)
+for person in people {
+    print("Adult: \(person.name), age \(person.age)")
+}
+
 
 // Or a background context
 Task.detached {
-    let people = await modelContainer.perform {
-        Query<Person>()
+    await modelContainer.queryActor().perform { _ in
+        let people = Query<Person>()
             .include(#Predicate { $0.age >= 18 } )
             .sortBy(\.age)
             .results()
+        
+        for person in people {
+            person.age += 1
+        }
     }
 }    
 ```
 
 ### Building Queries
 
-Queries are an expressive layer on top of Swift Data that allow us to quickly build 
+Queries are an expressive layer on top of SwiftData that allow us to quickly build 
 complex fetch decriptors by successively applying refinements. The resulting query can 
 be saved for reuse or performed immediately. 
 
@@ -50,6 +58,24 @@ Queries can be narrowed by selecting or excluding candidate objects using predic
 ```swift
 Person.include(#Predicate { $0.name == "Jack" })
 Person.exclude(#Predicate { $0.age > 25 })
+```
+
+#### Creating compound refinements
+
+Multiple `include()` and `exclude()` calls create compound predicates using AND logic, allowing you to build complex filters:
+
+```swift
+// Find adult Jacks who are active
+Person.include(#Predicate { $0.age >= 18 })
+      .include(#Predicate { $0.name == "Jack" })
+      .exclude(#Predicate { $0.isInactive })
+```
+
+This creates a compound predicate equivalent to:
+```swift
+#Predicate<Person> { person in
+    person.age >= 18 && person.name == "Jack" && !person.isInactive
+}
 ```
 
 #### Ordering results
@@ -122,7 +148,7 @@ we pass in our model container and SwiftQuery will use the container's main cont
 
 #### Fetching one result
 
-Often we just want 
+Often we just want to fetch a single result.
  
 ```swift
 let jillQuery = Person.include(#Predicate { $0.name == "Jill" })
@@ -153,7 +179,7 @@ let lazyAdults = Person
 
 #### Fetching or creating objects matching a query
 
-A common pattern in Core Data (and so in Swift Data), is to want to fetch an object 
+A common pattern in Core Data (and so in SwiftData), is to want to fetch an object 
 based on a set of filters, or create a new one by default in the case that object 
 does not yet exist. This is easy with SwiftQuery using `findOrCreate`:
 
@@ -163,7 +189,6 @@ let jill = Person
     .findOrCreate(in: container) {
         Person(name: "Jill")
     }
-}
 ```
 
 ### Performing queries in a concurrent context
@@ -188,31 +213,36 @@ actor MyActor {
 }
 ```
 
-We also expose an async `perform` function on `ModelContainer` that allow you to 
-implicitly use SwiftQuery's `QueryActor` to run queries:
+We also expose an async `perform` functions on a SwiftQuery's default actor that allow you to 
+implicitly use `QueryActor` to run queries:
 
 ```swift
-let allJills = try await modelContainer.perform {
-    Person
+await modelContainer.queryActor().perform { _ in
+    let allJills = Person
         .include(#Predicate { $0.name == "Jill" })
         .results()
+    
+    // Process Jills within the actor context
+    for jill in allJills {
+        print("Found Jill: \(jill.name)")
+    }
 }
 ``` 
 
-You can of course pass this (or any) model actor explicitly as the isolation context:
+Or, to return a value:
 
 ```swift
-Task {
-    let actor = QueryActor(modelContainer: myModelContainer)
-    let allJills = try await Person
-        .include(#Predicate { $0.name == "Jill" })
-        .results(isolation: actor)
-}
+let count = await modelContainer.queryActor().perform { _ in
+    Query<Person>()
+    .include(#Predicate { $0.age >= 18 } )
+    .count()
+} 
 ```
 
-
-## TODO
-- Tests
+Note that models cannot be returned out of the actor's isolation context using this function; 
+only `Sendable` values can be transported across the boundary. This means the compiler 
+effectively makes it impossible to use the models incorrectly in a multi-threaded context, 
+thus guaranteeing the SwiftData concurrency contract at compile time.     
 
 ## Installation
 
@@ -232,7 +262,7 @@ dependencies: [
 And then adding the product to any target that needs access to the library:
 
 ```swift
-.product(name: "SwiftQuery", package: "swift-squery"),
+.product(name: "SwiftQuery", package: "swift-query"),
 ```
 
 ## License
