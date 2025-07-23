@@ -16,7 +16,7 @@ for person in people {
 
 // Or a background context
 Task.detached {
-    await modelContainer.queryActor().perform { _ in
+    await modelContainer.createQueryActor().perform { _ in
         let people = Query<Person>()
             .include(#Predicate { $0.age >= 18 } )
             .sortBy(\.age)
@@ -217,7 +217,7 @@ We also expose an async `perform` functions on a SwiftQuery's default actor that
 implicitly use `QueryActor` to run queries:
 
 ```swift
-await modelContainer.queryActor().perform { _ in
+await modelContainer.createQueryActor().perform { _ in
     let allJills = Person
         .include(#Predicate { $0.name == "Jill" })
         .results()
@@ -232,7 +232,7 @@ await modelContainer.queryActor().perform { _ in
 Or, to return a value:
 
 ```swift
-let count = await modelContainer.queryActor().perform { _ in
+let count = await modelContainer.createQueryActor().perform { _ in
     Query<Person>()
     .include(#Predicate { $0.age >= 18 } )
     .count()

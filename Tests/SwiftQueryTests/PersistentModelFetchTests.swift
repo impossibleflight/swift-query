@@ -91,7 +91,7 @@ struct PersistentModelConcurrentFetchTests {
     }
 
     @Test func results() async throws {
-        try await modelContainer.queryActor().perform { _ in
+        try await modelContainer.createQueryActor().perform { _ in
             let modelResults = try Person.results()
             let directResults = try Query<Person>().results()
             
@@ -101,7 +101,7 @@ struct PersistentModelConcurrentFetchTests {
     }
 
     @Test func fetchedResults() async throws {
-        try await modelContainer.queryActor().perform { _ in
+        try await modelContainer.createQueryActor().perform { _ in
             let modelResultCount = try Person.fetchedResults { results in
                 results.count
             }
@@ -116,7 +116,7 @@ struct PersistentModelConcurrentFetchTests {
     }
 
     @Test func fetchedResultsWithBatchSize() async throws {
-        try await modelContainer.queryActor().perform { _ in
+        try await modelContainer.createQueryActor().perform { _ in
             let modelResultCount = try Person.fetchedResults(batchSize: 2) { results in
                 results.count
             }
@@ -131,7 +131,7 @@ struct PersistentModelConcurrentFetchTests {
     }
 
     @Test func fetchedResultsClosure() async throws {
-        try await modelContainer.queryActor().perform { _ in
+        try await modelContainer.createQueryActor().perform { _ in
             let modelResultCountMutex = Mutex<Int>(0)
             let directResultCountMutex = Mutex<Int>(0)
             
@@ -152,7 +152,7 @@ struct PersistentModelConcurrentFetchTests {
     }
 
     @Test func fetchedResultsWithBatchSizeClosure() async throws {
-        try await modelContainer.queryActor().perform { _ in
+        try await modelContainer.createQueryActor().perform { _ in
             let modelResultCountMutex = Mutex<Int>(0)
             let directResultCountMutex = Mutex<Int>(0)
             
@@ -173,7 +173,7 @@ struct PersistentModelConcurrentFetchTests {
     }
 
     @Test func count() async throws {
-        try await modelContainer.queryActor().perform { _ in
+        try await modelContainer.createQueryActor().perform { _ in
             let modelCount = try Person.count()
             let directCount = try Query<Person>().count()
             
@@ -183,7 +183,7 @@ struct PersistentModelConcurrentFetchTests {
     }
 
     @Test func isEmpty() async throws {
-        try await modelContainer.queryActor().perform { _ in
+        try await modelContainer.createQueryActor().perform { _ in
             let modelIsEmpty = try Person.isEmpty()
             let directIsEmpty = try Query<Person>().isEmpty()
             
@@ -193,7 +193,7 @@ struct PersistentModelConcurrentFetchTests {
     }
 
     @Test func findOrCreate() async throws {
-        try await modelContainer.queryActor().perform { _ in
+        try await modelContainer.createQueryActor().perform { _ in
             // Test with existing person
             let existingPredicate = #Predicate<Person> { $0.name == "Jack" }
             var modelResult: (name: String, age: Int)?

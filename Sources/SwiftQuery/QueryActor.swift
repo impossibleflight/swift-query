@@ -47,7 +47,7 @@ public actor QueryActor: Sendable {
 
 public extension ModelContainer {
     /// Creates a `QueryActor` associated with this model container.
-    func queryActor() -> QueryActor {
+    func createQueryActor() -> QueryActor {
         .init(modelContainer: self)
     }
 }

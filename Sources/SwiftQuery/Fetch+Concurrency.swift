@@ -47,7 +47,7 @@ public extension Query {
     /// ## Example
     /// ```swift
     /// // Get the oldest person concurrently
-    /// await container.queryActor().perform { _ in
+    /// await container.createQueryActor().perform { _ in
     ///     let oldest = try Person.sortBy(\.age).last()
     ///     print("Oldest person: \(oldest?.name ?? "None")")
     /// }
@@ -69,7 +69,7 @@ public extension Query {
     /// ## Example
     /// ```swift
     /// // Fetch all adults concurrently
-    /// await container.queryActor().perform { _ in
+    /// await container.createQueryActor().perform { _ in
     ///     let adults = try Person.include(#Predicate { $0.age >= 18 }).results()
     ///     print("Found \(adults.count) adults")
     /// }
@@ -94,7 +94,7 @@ public extension Query {
     /// ## Example
     /// ```swift
     /// // Process large result set in batches concurrently
-    /// await container.queryActor().perform { _ in
+    /// await container.createQueryActor().perform { _ in
     ///     try Person.sortBy(\.name).fetchedResults(batchSize: 50) { results in
     ///         for person in results.prefix(100) {
     ///             // Process first 100 results efficiently
@@ -130,7 +130,7 @@ public extension Query {
     /// ## Example
     /// ```swift
     /// // Get count of large result set efficiently
-    /// let count = try await container.queryActor().perform { _ in
+    /// let count = try await container.createQueryActor().perform { _ in
     ///     try Person.sortBy(\.name).fetchedResults { results in
     ///         results.count
     ///     }
@@ -158,7 +158,7 @@ public extension Query {
     /// ## Example
     /// ```swift
     /// // Count adults concurrently
-    /// let adultCount = try await container.queryActor().perform { _ in
+    /// let adultCount = try await container.createQueryActor().perform { _ in
     ///     try Person.include(#Predicate { $0.age >= 18 }).count()
     /// }
     /// ```
@@ -179,7 +179,7 @@ public extension Query {
     /// ## Example
     /// ```swift
     /// // Check if any minors exist concurrently
-    /// let hasMinors = try await container.queryActor().perform { _ in
+    /// let hasMinors = try await container.createQueryActor().perform { _ in
     ///     try !Person.include(#Predicate { $0.age < 18 }).isEmpty()
     /// }
     /// ```
@@ -202,7 +202,7 @@ public extension Query {
     /// ## Example
     /// ```swift
     /// // Find or create admin user concurrently
-    /// try await container.queryActor().perform { actor in
+    /// try await container.createQueryActor().perform { actor in
     ///     try Person
     ///         .include(#Predicate { $0.role == "admin" })
     ///         .findOrCreate(
@@ -242,7 +242,7 @@ public extension Query {
     /// ## Example
     /// ```swift
     /// // Delete inactive users concurrently
-    /// await container.queryActor().perform { _ in
+    /// await container.createQueryActor().perform { _ in
     ///     try Person.include(#Predicate { $0.isInactive }).delete()
     /// }
     /// ```
