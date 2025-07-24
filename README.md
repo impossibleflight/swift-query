@@ -1,4 +1,6 @@
 # swift-query
+[![CI](https://github.com/impossibleflight/swift-query/actions/workflows/swift.yml/badge.svg)](https://github.com/impossibleflight/swift-query/actions)
+
 A simple query language for SwiftData with automatic support for Swift concurrency.
 
 ## Usage
