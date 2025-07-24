@@ -5,7 +5,7 @@ A simple query language for SwiftData with automatic support for Swift concurren
 
 ## What is SwiftQuery?
 
-The library provides an easy, modifier-like syntax that can be used to build 
+The library provides an easy-to-use, modifier-like syntax that can be used to build 
 reusable SwiftData queries. These queries can then be executed from either the 
 `MainActor` or safely from a background context within any `ModelActor`. 
 
@@ -14,7 +14,7 @@ that type, the queries that are built using SwiftQuery are usable from anywhereâ
 not just from within the SwiftUI environment. This lets us use saved queries from
 view models, reducers, background processes, etc..
 
-The correct use of SwiftData models in a concurrency environment is built into the 
+The correct use of queries in a concurrency environment is built into the 
 library, and enforced at compile time, making it painless to adopt best practices.
  
 
@@ -208,10 +208,10 @@ let jill = Person
     }
 ```
 
-### Performing queries in a concurrent context
+### Performing queries in a concurrency environment
 
 Where SwiftQuery really shines is it's automatic support for performing queries
-in a concurrent context. The current isolation context is passed in to each function
+in a concurrency environment. The current isolation context is passed in to each function
 that performs a query, so if you have a custom model actor, you can freely perform
 queries inside the actor:
 
@@ -230,7 +230,7 @@ actor MyActor {
 }
 ```
 
-We also expose an async `perform` functions on a SwiftQuery's default actor that allow you to 
+We also expose async `perform` functions on SwiftQuery's default actor that allow you to 
 implicitly use `QueryActor` to run queries:
 
 ```swift
@@ -258,8 +258,9 @@ let count = await modelContainer.createQueryActor().perform { _ in
 
 Note that models cannot be returned out of the actor's isolation context using this function; 
 only `Sendable` values can be transported across the boundary. This means the compiler 
-effectively makes it impossible to use the models incorrectly in a multi-threaded context, 
-thus guaranteeing the SwiftData concurrency contract at compile time.     
+effectively makes it impossible to use the models returned from a query incorrectly in 
+a multi-context environment, thus guaranteeing the SwiftData concurrency contract at 
+compile time.     
 
 ## Installation
 
