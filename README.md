@@ -3,6 +3,21 @@
 
 A simple query language for SwiftData with automatic support for Swift concurrency.
 
+## What is SwiftQuery?
+
+The library provides an easy, modifier-like syntax that can be used to build 
+reusable SwiftData queries. These queries can then be executed from either the 
+`MainActor` or safely from a background context within any `ModelActor`. 
+
+SwiftData's `Query` type provides a similar ability to build queries, but unlike 
+that type, the queries that are built using SwiftQuery are usable from anywhere—
+not just from within the SwiftUI environment. This lets us use saved queries from
+view models, reducers, background processes, etc..
+
+The correct use of SwiftData models in a concurrency environment is built into the 
+library, and enforced at compile time, making it painless to adopt best practices.
+ 
+
 ## Usage
 
 ```swift
@@ -266,6 +281,10 @@ And then adding the product to any target that needs access to the library:
 ```swift
 .product(name: "SwiftQuery", package: "swift-query"),
 ```
+
+## Authors
+
+John Clayton (@johnclayton)
 
 ## License
 
