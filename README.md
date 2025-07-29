@@ -1,5 +1,8 @@
 # swift-query
 [![CI](https://github.com/impossibleflight/swift-query/actions/workflows/swift.yml/badge.svg)](https://github.com/impossibleflight/swift-query/actions)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fimpossibleflight%2Fswift-query%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/impossibleflight/swift-query)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fimpossibleflight%2Fswift-query%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/impossibleflight/swift-query)
+
 
 A simple query language for SwiftData with automatic support for Swift concurrency.
 
