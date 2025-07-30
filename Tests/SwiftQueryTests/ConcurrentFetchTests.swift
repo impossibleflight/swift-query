@@ -1,6 +1,6 @@
 import Foundation
 import SwiftData
-@testable import SwiftQuery
+import SwiftQuery
 import Synchronization
 import Testing
 

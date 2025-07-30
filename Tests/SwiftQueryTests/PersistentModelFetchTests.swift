@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 import Synchronization
-@testable import SwiftQuery
+import SwiftQuery
 import Testing
 
 @MainActor

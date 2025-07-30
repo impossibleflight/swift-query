@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-extension PersistentModel {
+public extension PersistentModel {
     static func include(_ predicate: Predicate<Self>) -> Query<Self> {
         query().include(predicate)
     }
