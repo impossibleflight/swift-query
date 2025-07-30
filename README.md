@@ -36,7 +36,8 @@ for person in people {
 
 // Or a background context
 Task.detached {
-    await modelContainer.createQueryActor().perform { _ in
+    let actor = modelContainer.createQueryActor()
+    await actor.perform { _ in
         let people = Query<Person>()
             .include(#Predicate { $0.age >= 18 } )
             .sortBy(\.age)
