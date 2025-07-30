@@ -196,18 +196,6 @@ struct ConcurrentFetchTests {
         }
     }
 
-    @Test func findOrCreate_failsWithoutPredicate() async throws {
-        _ = await modelContainer.createQueryActor().perform { actor in
-            #expect(throws: Query<Person>.Error.missingPredicate, performing: {
-                try Person
-                    .findOrCreate(
-                        isolation: actor,
-                        body: { Person(name: "Ramona", age: 99) }
-                    )
-            })
-        }
-    }
-
     @Test func findOrCreate_finds() async throws {
         let foundAge = try await modelContainer.createQueryActor().perform { _ in
             let person = try Person

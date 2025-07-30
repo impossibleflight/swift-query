@@ -182,9 +182,6 @@ public extension Query {
         isolation: isolated (any ModelActor) = #isolation,
         body: () -> T
     ) throws -> T {
-        guard predicate != nil else {
-            throw Error.missingPredicate
-        }
         if let found = try first() {
             return found
         } else {

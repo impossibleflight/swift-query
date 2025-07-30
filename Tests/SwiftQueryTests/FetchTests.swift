@@ -165,15 +165,6 @@ struct FetchTests {
         #expect(results.last?.name == "Jack")
     }
 
-    @Test func findOrCreate_failsWithoutPredicate() throws {
-        #expect(throws: Query<Person>.Error.missingPredicate, performing: {
-            try Person
-                .findOrCreate(in: modelContainer) {
-                    Person(name: "Ramona", age: 99)
-                }
-        })
-    }
-
     @Test func findOrCreate_finds() throws {
         let ramona = try Person
             .include(#Predicate { $0.name == "Ramona" })

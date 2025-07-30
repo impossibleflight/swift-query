@@ -123,9 +123,6 @@ public extension Query {
         in container: ModelContainer,
         body: () -> T
     ) throws -> T {
-        guard predicate != nil else {
-            throw Error.missingPredicate
-        }
         guard let found = try first(in: container) else {
             let created = body()
             container.mainContext.insert(created)
@@ -147,21 +144,6 @@ public extension Query {
         let results = try results(in: container)
         results.forEach {
             container.mainContext.delete($0)
-        }
-    }
-}
-
-public extension Query {
-    /// Errors that can occur during query execution.
-    enum Error: Swift.Error, LocalizedError {
-        /// Thrown when `findOrCreate` is called on a query without a predicate.
-        case missingPredicate
-
-        public var errorDescription: String? {
-            switch self {
-            case .missingPredicate:
-                return "Cannot use findOrCreate without a predicate. Add include() or exclude() to specify which object to find."
-            }
         }
     }
 }
