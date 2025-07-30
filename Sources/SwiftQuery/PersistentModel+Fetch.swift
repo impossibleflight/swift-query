@@ -42,38 +42,19 @@ extension PersistentModel {
         try query().results()
     }
 
-    /// Builds a query over this model type and invokes ``Query/fetchedResults(isolation:operation:)`` on that query.
+    /// Builds a query over this model type and invokes ``Query/fetchedResults(isolation:)`` on that query.
     static func fetchedResults(
-        isolation: isolated (any ModelActor) = #isolation,
-        operation: @Sendable (FetchResultsCollection<Self>) -> Void
-    ) throws  {
-        try query().fetchedResults(operation: operation)
+        isolation: isolated (any ModelActor) = #isolation
+    ) throws -> FetchResultsCollection<Self>  {
+        try query().fetchedResults()
     }
 
-    /// Builds a query over this model type and invokes ``Query/fetchedResults(batchSize:isolation:operation:)`` on that query.
+    /// Builds a query over this model type and invokes ``Query/fetchedResults(batchSize:isolation:)`` on that query.
     static func fetchedResults(
         batchSize: Int,
-        isolation: isolated (any ModelActor) = #isolation,
-        operation: @Sendable (FetchResultsCollection<Self>) -> Void
-    ) throws {
-        try query().fetchedResults(batchSize: batchSize, operation: operation)
-    }
-
-    /// Builds a query over this model type and invokes ``Query/fetchedResults(isolation:operation:)`` on that query.
-    static func fetchedResults<Value>(
-        isolation: isolated (any ModelActor) = #isolation,
-        operation: @Sendable (FetchResultsCollection<Self>) -> Value
-    ) throws -> Value where Value: Sendable {
-        try query().fetchedResults(operation: operation)
-    }
-
-    /// Builds a query over this model type and invokes ``Query/fetchedResults(batchSize:isolation:operation:)`` on that query.
-    static func fetchedResults<Value>(
-        batchSize: Int,
-        isolation: isolated (any ModelActor) = #isolation,
-        operation: @Sendable (FetchResultsCollection<Self>) -> Value
-    ) throws -> Value where Value: Sendable {
-        try query().fetchedResults(batchSize: batchSize, operation: operation)
+        isolation: isolated (any ModelActor) = #isolation
+    ) throws -> FetchResultsCollection<Self> {
+        try query().fetchedResults(batchSize: batchSize)
     }
 
     /// Builds a query over this model type and invokes ``Query/count(isolation:)`` on that query.
@@ -89,9 +70,8 @@ extension PersistentModel {
     /// Builds a query over this model type and invokes ``Query/findOrCreate(isolation:body:operation:)`` on that query.
     static func findOrCreate(
         isolation: isolated (any ModelActor) = #isolation,
-        body: () -> Self,
-        operation: (Self) -> Void
-    ) throws {
-        try query().findOrCreate(body: body, operation: operation)
+        body: () -> Self
+    ) throws -> Self {
+        try query().findOrCreate(body: body)
     }
 }

@@ -102,73 +102,23 @@ struct PersistentModelConcurrentFetchTests {
 
     @Test func fetchedResults() async throws {
         try await modelContainer.createQueryActor().perform { _ in
-            let modelResultCount = try Person.fetchedResults { results in
-                results.count
-            }
-            
-            let directResultCount = try Query<Person>().fetchedResults { results in
-                results.count
-            }
-            
-            #expect(modelResultCount == directResultCount)
-            #expect(modelResultCount == 3)
+            let modelResult = try Person.fetchedResults()
+
+            let directResult = try Query<Person>().fetchedResults()
+
+            #expect(modelResult.count == directResult.count)
+            #expect(modelResult.count == 3)
         }
     }
 
     @Test func fetchedResultsWithBatchSize() async throws {
         try await modelContainer.createQueryActor().perform { _ in
-            let modelResultCount = try Person.fetchedResults(batchSize: 2) { results in
-                results.count
-            }
+            let modelResult = try Person.fetchedResults(batchSize: 2)
             
-            let directResultCount = try Query<Person>().fetchedResults(batchSize: 2) { results in
-                results.count
-            }
+            let directResult = try Query<Person>().fetchedResults(batchSize: 2)
             
-            #expect(modelResultCount == directResultCount)
-            #expect(modelResultCount == 3)
-        }
-    }
-
-    @Test func fetchedResultsClosure() async throws {
-        try await modelContainer.createQueryActor().perform { _ in
-            let modelResultCountMutex = Mutex<Int>(0)
-            let directResultCountMutex = Mutex<Int>(0)
-            
-            try Person.fetchedResults { results in
-                modelResultCountMutex.withLock { $0 = results.count }
-            }
-            
-            try Query<Person>().fetchedResults { results in
-                directResultCountMutex.withLock { $0 = results.count }
-            }
-            
-            let modelResultCount = modelResultCountMutex.withLock { $0 }
-            let directResultCount = directResultCountMutex.withLock { $0 }
-            
-            #expect(modelResultCount == directResultCount)
-            #expect(modelResultCount == 3)
-        }
-    }
-
-    @Test func fetchedResultsWithBatchSizeClosure() async throws {
-        try await modelContainer.createQueryActor().perform { _ in
-            let modelResultCountMutex = Mutex<Int>(0)
-            let directResultCountMutex = Mutex<Int>(0)
-            
-            try Person.fetchedResults(batchSize: 2) { results in
-                modelResultCountMutex.withLock { $0 = results.count }
-            }
-            
-            try Query<Person>().fetchedResults(batchSize: 2) { results in
-                directResultCountMutex.withLock { $0 = results.count }
-            }
-            
-            let modelResultCount = modelResultCountMutex.withLock { $0 }
-            let directResultCount = directResultCountMutex.withLock { $0 }
-            
-            #expect(modelResultCount == directResultCount)
-            #expect(modelResultCount == 3)
+            #expect(modelResult.count == directResult.count)
+            #expect(modelResult.count == 3)
         }
     }
 
@@ -196,26 +146,13 @@ struct PersistentModelConcurrentFetchTests {
         try await modelContainer.createQueryActor().perform { _ in
             // Test with existing person
             let existingPredicate = #Predicate<Person> { $0.name == "Jack" }
-            var modelResult: (name: String, age: Int)?
-            var directResult: (name: String, age: Int)?
+
+            let modelPerson = try Person.include(existingPredicate).findOrCreate { Person(name: "Jack", age: 999) }
+            let directPerson = try Query<Person>().include(existingPredicate).findOrCreate { Person(name: "Jack", age: 999) }
             
-            try Person.include(existingPredicate).findOrCreate(
-                body: { Person(name: "Jack", age: 999) },
-                operation: { person in
-                    modelResult = (person.name, person.age)
-                }
-            )
-            
-            try Query<Person>().include(existingPredicate).findOrCreate(
-                body: { Person(name: "Jack", age: 999) },
-                operation: { person in
-                    directResult = (person.name, person.age)
-                }
-            )
-            
-            #expect(modelResult?.name == directResult?.name)
-            #expect(modelResult?.age == directResult?.age)
-            #expect(modelResult?.age != 999) // Should find existing, not create new
+            #expect(modelPerson.name == directPerson.name)
+            #expect(modelPerson.age == directPerson.age)
+            #expect(modelPerson.age != 999) // Should find existing, not create new
         }
     }
 }

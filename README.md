@@ -216,19 +216,19 @@ let jill = Person
 Where SwiftQuery really shines is it's automatic support for performing queries
 in a concurrency environment. The current isolation context is passed in to each function
 that performs a query, so if you have a custom model actor, you can freely perform
-queries inside the actor:
+queries and operate on the results inside the actor:
 
 ```swift
 @ModelActor
 actor MyActor {
     func promoteJill() throws {
-        if let jill = Person
+        let jill = Person
             .include(#Predicate { $0.name == "Jill" })
-            .first() 
-        {
-            jill.isPromoted = true
-            try modelContext.save()
-        }
+            .findOrCreate {
+                Person(name: "Jill")
+            }
+        jill.isPromoted = true
+        try modelContext.save()
     }
 }
 ```
@@ -249,7 +249,10 @@ await modelContainer.createQueryActor().perform { _ in
 }
 ``` 
 
-Or, to return a value:
+The results remain inside the actor's isolation
+domain so can be safely used within the closure. 
+
+If we need to produce a side effect for the query, we can return a value:
 
 ```swift
 let count = await modelContainer.createQueryActor().perform { _ in
@@ -259,7 +262,7 @@ let count = await modelContainer.createQueryActor().perform { _ in
 } 
 ```
 
-Note that models cannot be returned out of the actor's isolation context using this function; 
+> Note:  Models cannot be returned out of the actor's isolation context using this function; 
 only `Sendable` values can be transported across the boundary. This means the compiler 
 effectively makes it impossible to use the models returned from a query incorrectly in 
 a multi-context environment, thus guaranteeing the SwiftData concurrency contract at 

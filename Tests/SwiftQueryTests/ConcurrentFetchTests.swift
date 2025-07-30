@@ -81,10 +81,9 @@ struct ConcurrentFetchTests {
     @Test func includeQuery_fetchedResults() async throws {
         try await modelContainer.createQueryActor().perform { _ in
             let query = Query<Person>().include(#Predicate { $0.name == "Jack" })
-            try query.fetchedResults { results in
-                #expect(results.count == 2)
-                #expect(results.allSatisfy { $0.name == "Jack" })
-            }
+            let results = try query.fetchedResults()
+            #expect(results.count == 2)
+            #expect(results.allSatisfy { $0.name == "Jack" })
         }
     }
 
@@ -140,10 +139,9 @@ struct ConcurrentFetchTests {
     @Test func excludeQuery_fetchedResults() async throws {
         try await modelContainer.createQueryActor().perform { _ in
             let query = Query<Person>().exclude(#Predicate { $0.name == "Jack" })
-            try query.fetchedResults { results in
-                #expect(results.count == 9)
-                #expect(results.allSatisfy { $0.name != "Jack" })
-            }
+            let results = try query.fetchedResults()
+            #expect(results.count == 9)
+            #expect(results.allSatisfy { $0.name != "Jack" })
         }
     }
 
@@ -167,7 +165,7 @@ struct ConcurrentFetchTests {
         }
     }
 
-    @Test func range() async throws {
+    @Test func range_results() async throws {
         try await modelContainer.createQueryActor().perform { _ in
             let baseQuery = Query<Person>()
                 .sortBy(\.name)
@@ -191,11 +189,10 @@ struct ConcurrentFetchTests {
             let query = Query<Person>()
                 .sortBy(\.name)[0..<5]
             
-            try query.fetchedResults { results in
-                #expect(results.count == 5)
-                #expect(results.first?.name == "Domingo")
-                #expect(results.last?.name == "Jack")
-            }
+            let results = try query.fetchedResults()
+            #expect(results.count == 5)
+            #expect(results.first?.name == "Domingo")
+            #expect(results.last?.name == "Jack")
         }
     }
 
@@ -205,43 +202,31 @@ struct ConcurrentFetchTests {
                 try Person
                     .findOrCreate(
                         isolation: actor,
-                        body: { Person(name: "Ramona", age: 99) },
-                        operation: { _ in }
+                        body: { Person(name: "Ramona", age: 99) }
                     )
             })
         }
     }
 
     @Test func findOrCreate_finds() async throws {
-        try await modelContainer.createQueryActor().perform { _ in
-            var foundAge: Int?
-            try Person
+        let foundAge = try await modelContainer.createQueryActor().perform { _ in
+            let person = try Person
                 .include(#Predicate { $0.name == "Ramona" })
-                .findOrCreate(
-                    body: { Person(name: "Ramona", age: 99) },
-                    operation: { person in
-                        foundAge = person.age
-                    }
-                )
+                .findOrCreate { Person(name: "Ramona", age: 99) }
+            return person.age
 
-            #expect(foundAge == 20)
         }
+        #expect(foundAge == 20)
     }
 
     @Test func findOrCreate_creates() async throws {
-        try await modelContainer.createQueryActor().perform { _ in
-            var createdAge: Int?
-            try Person
+        let createdAge = try await modelContainer.createQueryActor().perform { _ in
+            let person = try Person
                 .include(#Predicate { $0.name == "Ramona" && $0.age == 99 })
-                .findOrCreate(
-                    body: { Person(name: "Ramona", age: 99) },
-                    operation: { person in
-                        createdAge = person.age
-                    }
-                )
-
-            #expect(createdAge == 99)
+                .findOrCreate { Person(name: "Ramona", age: 99) }
+            return person.age
         }
+        #expect(createdAge == 99)
     }
 
     @Test func delete_including() async throws {
@@ -385,26 +370,27 @@ struct ConcurrentFetchTests {
 
     @Test func contextIsolation() async throws {
         let actor = QueryActor(modelContainer: modelContainer)
+        try await actor.testScoped { _ in
+            let contextCount = try await actor.perform { actor in
+                let newPerson = Person(name: "ActorOnly", age: 30)
+                actor.modelContext.insert(newPerson)
 
-        let contextCount = try await actor.perform { actor in
-            let newPerson = Person(name: "ActorOnly", age: 30)
-            actor.modelContext.insert(newPerson)
+                return try Query<Person>()
+                    .include(#Predicate { $0.name == "ActorOnly" })
+                    .count()
+            }
 
-            return try Query<Person>()
-                .include(#Predicate { $0.name == "ActorOnly" })
-                .count()
+            #expect(contextCount == 1)
+
+            // Main context should not see the actor's changes since they're not propagated
+            let mainContextCount = try await MainActor.run {
+                try Query<Person>()
+                    .include(#Predicate { $0.name == "ActorOnly" })
+                    .count(in: modelContainer)
+            }
+
+            #expect(mainContextCount == 0)
         }
-
-        #expect(contextCount == 1)
-
-        // Main context should not see the actor's changes since they're not propagated
-        let mainContextCount = try await MainActor.run {
-            try Query<Person>()
-                .include(#Predicate { $0.name == "ActorOnly" })
-                .count(in: modelContainer)
-        }
-
-        #expect(mainContextCount == 0)
     }
 
     @Test func concurrentQueries() async throws {
@@ -537,42 +523,55 @@ struct ConcurrentFetchTests {
     @Test func perform_singleContextConcurrentMutations() async throws {
         let actor = QueryActor(modelContainer: modelContainer)
 
-        let countOfJacks = 2
-        let age = try await jacksAge()
+        try await actor.testScoped { _ in
+            let countOfJacks = 2
+            let age = try await jacksAge()
 
-        try await withThrowingDiscardingTaskGroup { group in
-            group.addTask {
-                try await actor.perform { actor in
-                    let jacks = try Query<Person>()
-                        .include(#Predicate { $0.name == "Jack"})
-                        .results()
+            try await withThrowingDiscardingTaskGroup { group in
+                group.addTask {
+                    try await actor.perform { actor in
+                        let jacks = try Query<Person>()
+                            .include(#Predicate { $0.name == "Jack"})
+                            .results()
 
-                    #expect(jacks.count == countOfJacks)
+                        #expect(jacks.count == countOfJacks)
 
-                    for jack in jacks {
-                        jack.age += 1
+                        for jack in jacks {
+                            jack.age += 1
+                        }
+                    }
+                }
+
+                group.addTask {
+                    try await ContinuousClock().sleep(for: .milliseconds(100))
+
+                    try await actor.perform { actor in
+                        let jacks = try Query<Person>()
+                            .include(#Predicate { $0.name == "Jack"})
+                            .results()
+
+                        let newAge = jacks.reduce(0) { $0 + $1.age }
+                        #expect(newAge == age + countOfJacks)
                     }
                 }
             }
 
-            group.addTask {
-                try await ContinuousClock().sleep(for: .milliseconds(100))
+        }
 
-                try await actor.perform { actor in
-                    let jacks = try Query<Person>()
-                        .include(#Predicate { $0.name == "Jack"})
-                        .results()
+    }
 
-                    let newAge = jacks.reduce(0) { $0 + $1.age }
-                    #expect(newAge == age + countOfJacks)
-                }
-            }
+    @Test func customActor_fetches() async throws {
+        let actor = MyActor(modelContainer: modelContainer)
+        try await actor.testScoped {
+            try $0.fetchPeople()
         }
     }
 
-    @Test func queryWithCustomActor() async throws {
+    @Test func customActor_findsOrCreates() async throws {
         let actor = MyActor(modelContainer: modelContainer)
-        try await actor.fetch()
+        try await actor.testScoped {
+            try $0.findOrCreateRamona()
+        }
     }
 
     @MainActor
@@ -587,8 +586,26 @@ struct ConcurrentFetchTests {
 
 @ModelActor
 actor MyActor {
-    func fetch() throws {
-        let results = try Query<Person>().results()
+    func fetchPeople() throws {
+        let results = try Query<Person>()
+            .results()
         #expect(results.count == 11)
     }
+
+    func findOrCreateRamona() throws {
+        var createdAge: Int?
+        let person = try Person
+            .include(#Predicate { $0.name == "Ramona" && $0.age == 99 })
+            .findOrCreate { Person(name: "Ramona", age: 99) }
+        createdAge = person.age
+        #expect(createdAge == 99)
+    }
 }
+
+extension ModelActor {
+    func testScoped(_ operation: @Sendable (isolated Self) async throws -> Void) async rethrows {
+        try await operation(self)
+        modelContext.rollback()
+    }
+}
+
