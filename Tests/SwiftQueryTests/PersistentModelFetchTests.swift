@@ -19,6 +19,11 @@ struct PersistentModelFetchTests {
         try modelContainer.mainContext.save()
     }
 
+    @Test func any() throws {
+        let modelResult = try Person.any(in: modelContainer)
+        #expect(modelResult != nil)
+    }
+
     @Test func results() throws {
         let modelResults = try Person.results(in: modelContainer)
         let directResults = try Query<Person>().results(in: modelContainer)
@@ -88,6 +93,13 @@ struct PersistentModelConcurrentFetchTests {
             Person(name: "William", age: 87),
         ].forEach { modelContainer.mainContext.insert($0) }
         try modelContainer.mainContext.save()
+    }
+
+    @Test func any() async throws {
+        try await modelContainer.createQueryActor().perform { _ in
+            let modelResult = try Person.any()
+            #expect(modelResult != nil)
+        }
     }
 
     @Test func results() async throws {

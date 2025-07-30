@@ -177,6 +177,12 @@ let jillQuery = Person.include(#Predicate { $0.name == "Jill" })
 let jill = jillQuery.first(in: modelContainer)
 let lastJill  = jillQuery.last(in: modelContainer)
 ```
+Or any result:
+
+```swift
+let anyone = Person.any(in: modelContainer)
+```
+
 
 #### Fetching all results
 
@@ -212,7 +218,7 @@ let jill = Person
     }
 ```
 
-### Performing queries in a concurrency environment
+### Async fetches
 
 Where SwiftQuery really shines is it's automatic support for performing queries
 in a concurrency environment. The current isolation context is passed in to each function

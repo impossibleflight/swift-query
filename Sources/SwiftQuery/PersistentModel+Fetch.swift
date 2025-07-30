@@ -2,6 +2,12 @@ import SwiftData
 
 @MainActor
 public extension PersistentModel {
+    /// Builds a query over this model type and invokes ``Query/first(in:)`` on that query.
+    /// This is named `any` rather than `first` because there is no order.
+    static func any(in container: ModelContainer) throws -> Self? {
+        try query().first(in: container)
+    }
+
     /// Builds a query over this model type and invokes ``Query/results(in:)`` on that query.
     static func results(in container: ModelContainer) throws -> [Self] {
         try query().results(in: container)
@@ -37,6 +43,12 @@ public extension PersistentModel {
 }
 
 public extension PersistentModel {
+    /// Builds a query over this model type and invokes ``Query/first(isolation:)`` on that query.
+    /// This is named `any` rather than `first` because there is no order.
+    static func any(isolation: isolated (any ModelActor) = #isolation) throws -> Self? {
+        try query().first()
+    }
+
     /// Builds a query over this model type and invokes ``Query/results(isolation:)`` on that query.
     static func results(isolation: isolated (any ModelActor) = #isolation) throws -> [Self] {
         try query().results()
