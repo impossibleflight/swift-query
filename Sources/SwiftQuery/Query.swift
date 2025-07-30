@@ -39,11 +39,11 @@ public struct Query<T: PersistentModel> {
     public var range: Range<Int>?
 
     /// SwiftData compatible sort descriptors generated from the query's sort configuration.
-    package var sortDescriptors: [SortDescriptor<T>] {
+    public var sortDescriptors: [SortDescriptor<T>] {
         sortBy.map { $0.sortDescriptor }
     }
 
-    package var fetchDescriptor: FetchDescriptor<T> {
+    public var fetchDescriptor: FetchDescriptor<T> {
         var descriptor = FetchDescriptor(predicate: predicate, sortBy: sortDescriptors)
         if let range {
             descriptor.fetchOffset = range.lowerBound
