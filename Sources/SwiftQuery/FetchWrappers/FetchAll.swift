@@ -2,14 +2,17 @@ import Foundation
 import CoreData
 import Dependencies
 import SwiftData
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
 
 @MainActor
 @propertyWrapper
-public final class FetchAll<Model: PersistentModel> {
+public final class FetchAll<Model: PersistentModel>: Observable {
     public var wrappedValue: [Model] = []
     private var subscription: Task<Void, Never> = Task { }
 
-    public init(_ query: Query<Model>) {
+    public init(_ query: Query<Model> = .init()) {
         subscribe(fetchDescriptor: query.fetchDescriptor)
     }
 
@@ -43,3 +46,7 @@ public final class FetchAll<Model: PersistentModel> {
         }
     }
 }
+
+#if canImport(SwiftUI)
+extension FetchAll: DynamicProperty {}
+#endif

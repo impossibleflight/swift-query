@@ -2,6 +2,9 @@ import Foundation
 import CoreData
 import Dependencies
 import SwiftData
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
 
 @MainActor
 @propertyWrapper
@@ -43,3 +46,7 @@ public final class FetchResults<Model: PersistentModel> {
         }
     }
 }
+
+#if canImport(SwiftUI)
+extension FetchResults: DynamicProperty {}
+#endif

@@ -25,7 +25,7 @@ library, and enforced at compile time, making it painless to adopt best practice
 
 ```swift
 // Query from the main context
-let people = Query<Person>()
+let people = try Query<Person>()
     .include(#Predicate { $0.age >= 18 } )
     .sortBy(\.age)
     .results(in: modelContainer)
@@ -53,7 +53,7 @@ Task.detached {
 ### Building Queries
 
 Queries are an expressive layer on top of SwiftData that allow us to quickly build 
-complex fetch decriptors by successively applying refinements. The resulting query can 
+complex fetch descriptors by successively applying refinements. The resulting query can 
 be saved for reuse or performed immediately. 
 
 Queries can be initialized explicitly, but `PersistentModel` has also been extended 
@@ -174,13 +174,13 @@ Often we just want to fetch a single result.
 ```swift
 let jillQuery = Person.include(#Predicate { $0.name == "Jill" })
 
-let jill = jillQuery.first(in: modelContainer)
-let lastJill  = jillQuery.last(in: modelContainer)
+let jill = try jillQuery.first(in: modelContainer)
+let lastJill  = try jillQuery.last(in: modelContainer)
 ```
 Or any result:
 
 ```swift
-let anyone = Person.any(in: modelContainer)
+let anyone = try Person.any(in: modelContainer)
 ```
 
 
@@ -190,7 +190,7 @@ When we want to fetch all query results in memory, we can use `results`:
  
 ```swift
 let notJillQuery = Person.exclude(#Predicate { $0.name == "Jill" })
-let notJills = notJillQuery.results(in: modelContainer)
+let notJills = try notJillQuery.results(in: modelContainer)
 ```
 
 #### Lazy results
@@ -199,7 +199,7 @@ Sometimes we want a result that is lazily evaluated. For these cases we can get 
 `FetchResultsCollection` using `fetchedResults`:
 
 ```swift
-let lazyAdults = Person
+let lazyAdults = try Person
     .include(#Predicate { $0.age > 25 })
     .fetchedResults(in: modelContainer)
 ```
@@ -211,16 +211,35 @@ based on a set of filters, or create a new one by default in the case that objec
 does not yet exist. This is easy with SwiftQuery using `findOrCreate`:
 
 ```swift
-let jill = Person
+let jill = try Person
     .include(#Predicate { $0.name == "Jill" })
     .findOrCreate(in: container) {
         Person(name: "Jill")
     }
 ```
 
+#### Deleting objects
+
+We can delete just the objects matching a refined query:
+
+```swift
+try Person
+    .include(#Predicate { $0.name == "Jill" })
+    .delete(in: container)
+```
+
+Or we can delete every record of a particular type:
+
+```swift
+try Query<Person>().delete(in: container)
+try Person.deleteAll(in: container)
+```
+
+`PersistentModel.deleteAll` is equivalent to deleting with an empty query.
+
 ### Async fetches
 
-Where SwiftQuery really shines is it's automatic support for performing queries
+Where SwiftQuery really shines is its automatic support for performing queries
 in a concurrency environment. The current isolation context is passed in to each function
 that performs a query, so if you have a custom model actor, you can freely perform
 queries and operate on the results inside the actor:
