@@ -26,6 +26,7 @@ public final class FetchFirst<Model: PersistentModel> {
         subscription = Task { [modelContainer = self.modelContainer] in
             do {
                 let initialResult = try query.first(in: modelContainer)
+                trace { logger.trace("\(Self.self).initialResult: \(String(describing: initialResult?.persistentModelID))") }
                 storage.wrappedValue = initialResult
 
                 let changeNotifications = NotificationCenter.default.notifications(named: .NSPersistentStoreRemoteChange)

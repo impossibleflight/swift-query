@@ -161,6 +161,22 @@ been applied to this query, we'll just get the first five results:
 Person[0..<5]
 ```
 
+#### Prefetching relationships
+
+To improve performance when you know you'll need related objects, you can prefetch relationships to reduce database trips:
+
+```swift
+// Prefetch a single relationship
+let ordersWithCustomers = Order
+    .include(#Predicate { $0.status == .active })
+    .prefetchRelationship(\.customer)
+
+// Prefetch multiple relationships
+let ordersWithDetails = Order
+    .prefetchRelationship(\.customer)
+    .prefetchRelationship(\.items)
+```
+
 ### Fetching results
 
 Queries are just descriptions of how to fetch objects from a context. To make them 

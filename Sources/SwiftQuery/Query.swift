@@ -38,6 +38,9 @@ public struct Query<T: PersistentModel> {
     /// A range representing the number of results to skip before returning matches and maximum number of results to fetch. When `nil`, the query will return all matching results.
     public var range: Range<Int>?
 
+    public var relationshipKeyPaths: [PartialKeyPath<T>] = []
+
+
     /// SwiftData compatible sort descriptors generated from the query's sort configuration.
     public var sortDescriptors: [SortDescriptor<T>] {
         sortBy.map { $0.sortDescriptor }
@@ -49,6 +52,7 @@ public struct Query<T: PersistentModel> {
             descriptor.fetchOffset = range.lowerBound
             descriptor.fetchLimit = range.upperBound - range.lowerBound
         }
+        descriptor.relationshipKeyPathsForPrefetching = relationshipKeyPaths
         return descriptor
     }
 
@@ -61,11 +65,13 @@ public struct Query<T: PersistentModel> {
     public init(
         predicate: Predicate<T>? = nil,
         sortBy: [AnySortDescriptor<T>] = [],
-        range: Range<Int>? = nil
+        range: Range<Int>? = nil,
+        prefetchRelationships: [PartialKeyPath<T>] = []
     ) {
         self.predicate = predicate
         self.sortBy = sortBy
         self.range = range
+        self.relationshipKeyPaths = prefetchRelationships
     }
 
     /// Returns a new query that includes only objects matching the given predicate.
@@ -93,7 +99,12 @@ public struct Query<T: PersistentModel> {
                 predicate.evaluate($0) && newPredicate.evaluate($0)
             }
         }
-        return Query(predicate: compoundPredicate, sortBy: sortBy, range: range)
+        return Query(
+            predicate: compoundPredicate,
+            sortBy: sortBy,
+            range: range,
+            prefetchRelationships: relationshipKeyPaths
+        )
     }
 
     /// Returns a new query that excludes objects matching the given predicate.
@@ -138,7 +149,8 @@ public struct Query<T: PersistentModel> {
         Query(
             predicate: predicate,
             sortBy: sortBy.map { $0.reversed() },
-            range: range
+            range: range,
+            prefetchRelationships: relationshipKeyPaths
         )
     }
 
@@ -157,7 +169,12 @@ public struct Query<T: PersistentModel> {
     /// ```
     public subscript(_ range: Range<Int>) -> Self {
         get {
-            Query(predicate: predicate, sortBy: sortBy, range: range)
+            Query(
+                predicate: predicate,
+                sortBy: sortBy,
+                range: range,
+                prefetchRelationships: relationshipKeyPaths,
+            )
         }
     }
 }
@@ -185,7 +202,12 @@ public extension Query {
     ) -> Self
     where Value: Comparable
     {
-        Query(predicate: predicate, sortBy: sortBy + [.init(keyPath, order: order)], range: range)
+        Query(
+            predicate: predicate,
+            sortBy: sortBy + [.init(keyPath, order: order)],
+            range: range,
+            prefetchRelationships: relationshipKeyPaths
+        )
     }
 
     /// Adds a sort descriptor for an optional comparable property to the query.
@@ -205,7 +227,12 @@ public extension Query {
     ) -> Self
     where Value: Comparable
     {
-        Query(predicate: predicate, sortBy: sortBy + [.init(keyPath, order: order)], range: range)
+        Query(
+            predicate: predicate,
+            sortBy: sortBy + [.init(keyPath, order: order)],
+            range: range,
+            prefetchRelationships: relationshipKeyPaths
+        )
     }
 
     /// Adds a sort descriptor for a String property with custom comparison.
@@ -225,7 +252,12 @@ public extension Query {
         comparator: String.StandardComparator = .localizedStandard,
         order: SortOrder = .forward
     ) -> Self {
-        Query(predicate: predicate, sortBy: sortBy + [.init(keyPath, comparator: comparator, order: order)], range: range)
+        Query(
+            predicate: predicate,
+            sortBy: sortBy + [.init(keyPath, comparator: comparator, order: order)],
+            range: range,
+            prefetchRelationships: relationshipKeyPaths
+        )
     }
 
     /// Adds a sort descriptor for an optional String property with custom comparison.
@@ -245,6 +277,45 @@ public extension Query {
         comparator: String.StandardComparator = .localizedStandard,
         order: SortOrder = .forward
     ) -> Self {
-        Query(predicate: predicate, sortBy: sortBy + [.init(keyPath, comparator: comparator, order: order)], range: range)
+        Query(
+            predicate: predicate,
+            sortBy: sortBy + [.init(keyPath, comparator: comparator, order: order)],
+            range: range,
+            prefetchRelationships: relationshipKeyPaths
+        )
+    }
+}
+
+
+
+public extension Query {
+    /// Returns a new query that prefetches the specified relationship when executing the fetch.
+    ///
+    /// Prefetching relationships can improve performance by reducing the number of database
+    /// trips needed when accessing related objects. Multiple relationships can be prefetched
+    /// by chaining multiple calls to this method.
+    ///
+    /// - Parameter keyPath: Key path to the relationship property to prefetch
+    /// - Returns: A new query with the additional relationship marked for prefetching
+    ///
+    /// ## Example
+    /// ```swift
+    /// // Prefetch single relationship
+    /// let ordersWithCustomers = Order
+    ///     .include(#Predicate { $0.status == .active })
+    ///     .prefetchRelationship(\.customer)
+    ///
+    /// // Prefetch multiple relationships
+    /// let ordersWithDetails = Order
+    ///     .prefetchRelationship(\.customer)
+    ///     .prefetchRelationship(\.items)
+    /// ```
+    func prefetchRelationship(_ keyPath: PartialKeyPath<T>) -> Self {
+        Query(
+            predicate: predicate,
+            sortBy: sortBy,
+            range: range,
+            prefetchRelationships: relationshipKeyPaths + [keyPath]
+        )
     }
 }
