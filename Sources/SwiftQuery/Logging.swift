@@ -3,7 +3,7 @@ import OSLog
 
 let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "",
-    category: "SwiftDataSharing"
+    category: "SwiftQuery"
 )
 
 func debug(_ operation: () -> Void) {

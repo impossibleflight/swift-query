@@ -2,18 +2,16 @@ import Foundation
 import CoreData
 import Dependencies
 import SwiftData
-#if canImport(SwiftUI)
-import SwiftUI
-#endif
 
 @MainActor
 @propertyWrapper
 public final class FetchFirst<Model: PersistentModel> {
-    private var reference: Reference = .init()
+    private var storage: Storage = .init()
     public var wrappedValue: Model? {
-        reference.wrappedValue
+        storage.wrappedValue
     }
     private var subscription: (Task<Void, Never>)?
+    @Dependency(\.modelContainer) private var modelContainer
 
     public init(_ query: Query<Model>) {
         subscribe(query)
@@ -25,11 +23,10 @@ public final class FetchFirst<Model: PersistentModel> {
 
     private func subscribe(_ query: Query<Model>) {
         debug { logger.debug("\(Self.self).\(#function)(query: \(String(describing: query))") }
-        subscription = Task {
+        subscription = Task { [modelContainer = self.modelContainer] in
             do {
-                @Dependency(\.modelContainer) var modelContainer
                 let initialResult = try query.first(in: modelContainer)
-                reference.wrappedValue = initialResult
+                storage.wrappedValue = initialResult
 
                 let changeNotifications = NotificationCenter.default.notifications(named: .NSPersistentStoreRemoteChange)
 
@@ -38,7 +35,7 @@ public final class FetchFirst<Model: PersistentModel> {
                     debug { logger.debug("\(Self.self).NSPersistentStoreRemoteChange")}
                     let result = try query.first(in: modelContainer)
                     trace { logger.trace("\(Self.self).fetchedResults: \(String(describing: result?.persistentModelID))") }
-                    reference.wrappedValue = result
+                    storage.wrappedValue = result
                 }
             } catch {
                 logger.error("\(error)")
@@ -46,13 +43,9 @@ public final class FetchFirst<Model: PersistentModel> {
         }
     }
 
-    private class Reference {
+    @Observable
+    internal class Storage {
         var wrappedValue: Model?
         init() {}
     }
 }
-
-#if canImport(SwiftUI)
-extension FetchFirst: DynamicProperty {}
-#endif
-
