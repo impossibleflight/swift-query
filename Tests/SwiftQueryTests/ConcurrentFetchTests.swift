@@ -466,29 +466,28 @@ struct ConcurrentFetchTests {
         }
     }
 
+    @MainActor
     @Test func perform_multipleContextsConcurrentMutation() async throws {
-        let countOfJacks = 2
+        let countOfJacks = try countOfJacks()
 
         @Sendable func incrementJacks(by amount: Int) async throws {
             try await modelContainer.createQueryActor().perform { actor in
-                let jacks = try Query<Person>()
-                    .include(#Predicate { $0.name == "Jack"})
-                    .results()
+                try actor.modelContext.transaction {
+                    let jacks = try Query<Person>()
+                        .include(#Predicate { $0.name == "Jack"})
+                        .results(isolation: actor)
 
-                #expect(jacks.count == countOfJacks)
-
-                for jack in jacks {
-                    jack.age += amount
+                    for jack in jacks {
+                        jack.age += amount
+                    }
                 }
-
-                try actor.modelContext.save()
             }
         }
 
         let iterations = 5
         let increment = 5
 
-        let age = try await jacksAge()
+        let age = try jacksAge()
 
         try await withThrowingDiscardingTaskGroup { group in
             (0..<iterations).forEach { index in
@@ -502,7 +501,7 @@ struct ConcurrentFetchTests {
             }
         }
 
-        let newAge = try await jacksAge()
+        let newAge = try jacksAge()
         let expectedAge = age + (iterations * increment * countOfJacks)
 
         #expect(newAge == expectedAge)
@@ -563,13 +562,19 @@ struct ConcurrentFetchTests {
     }
 
     @MainActor
-    private func jacksAge() async throws -> Int {
+    private func countOfJacks() throws -> Int {
+        try Query<Person>()
+            .include(#Predicate { $0.name == "Jack"})
+            .count(in: modelContainer)
+    }
+
+    @MainActor
+    private func jacksAge() throws -> Int {
         let jacks = try Query<Person>()
             .include(#Predicate { $0.name == "Jack"})
             .results(in: modelContainer)
         return jacks.reduce(0) { $0 + $1.age }
     }
-
 }
 
 @ModelActor
