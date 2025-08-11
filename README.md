@@ -177,7 +177,7 @@ let ordersWithDetails = Order
     .prefetchRelationship(\.items)
 ```
 
-### Fetching results
+### Executing queries
 
 Queries are just descriptions of how to fetch objects from a context. To make them 
 useful, we want to be able to perform them. When fetching results on the main actor,

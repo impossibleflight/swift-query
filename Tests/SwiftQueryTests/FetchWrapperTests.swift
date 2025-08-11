@@ -18,8 +18,7 @@ struct FetchWrapperTests {
         try await withDependencies {
             $0.modelContainer = modelContainer
         } operation: {
-            @FetchFirst(.jack)
-            var jack: Person?
+            @FetchFirst(.jack) var jack: Person?
             #expect(jack == nil)
 
             modelContainer.mainContext.insert(Person(name: "Jack", age: 25))
@@ -131,23 +130,18 @@ struct FetchWrapperTests {
         }
     }
 
-//    @Test func recordsIssue_whenMissingModelContainer() {
-//        withKnownIssue {
-//            @FetchFirst(
-//                predicate: #Predicate<Person> { $0.name == "Test" }
-//            ) var person: Person?
-//        }
-//    }
-
+    @Test func recordsIssue_whenMissingModelContainer() {
+        withKnownIssue {
+            @FetchFirst(.jack) var jack: Person?
+        }
+    }
 }
-
 
 extension Query where T == Person {
     static var jack: Query {
         Person
             .include(#Predicate<Person> { $0.name == "Jack" })
     }
-
 
     static var adults: Query {
         Person
