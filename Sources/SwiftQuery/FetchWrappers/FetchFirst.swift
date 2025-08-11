@@ -6,10 +6,10 @@ import SwiftData
 @MainActor
 @propertyWrapper
 public final class FetchFirst<Model: PersistentModel> {
-    private var storage: Storage = .init()
     public var wrappedValue: Model? {
         storage.wrappedValue
     }
+    private var storage: Storage = .init()
     private var subscription: (Task<Void, Never>)?
     @Dependency(\.modelContainer) private var modelContainer
 
@@ -26,7 +26,7 @@ public final class FetchFirst<Model: PersistentModel> {
         subscription = Task { [modelContainer = self.modelContainer] in
             do {
                 let initialResult = try query.first(in: modelContainer)
-                trace { logger.trace("\(Self.self).initialResult: \(String(describing: initialResult?.persistentModelID))") }
+                trace { logger.trace("\(Self.self).first: \(String(describing: initialResult?.persistentModelID))") }
                 storage.wrappedValue = initialResult
 
                 let changeNotifications = NotificationCenter.default.notifications(named: .NSPersistentStoreRemoteChange)
@@ -35,7 +35,7 @@ public final class FetchFirst<Model: PersistentModel> {
                     guard !Task.isCancelled else { break }
                     debug { logger.debug("\(Self.self).NSPersistentStoreRemoteChange")}
                     let result = try query.first(in: modelContainer)
-                    trace { logger.trace("\(Self.self).fetchedResults: \(String(describing: result?.persistentModelID))") }
+                    trace { logger.trace("\(Self.self).first: \(String(describing: result?.persistentModelID))") }
                     storage.wrappedValue = result
                 }
             } catch {

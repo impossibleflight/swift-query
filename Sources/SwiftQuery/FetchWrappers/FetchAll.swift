@@ -9,41 +9,52 @@ import SwiftUI
 @MainActor
 @propertyWrapper
 public final class FetchAll<Model: PersistentModel>: Observable {
-    public var wrappedValue: [Model] = []
-    private var subscription: Task<Void, Never> = Task { }
+    public var wrappedValue: [Model] {
+        storage.wrappedValue
+    }
+    private var storage: Storage = .init()
+    private var subscription: (Task<Void, Never>)?
+    @Dependency(\.modelContainer) private var modelContainer
 
     public init(_ query: Query<Model> = .init()) {
-        subscribe(fetchDescriptor: query.fetchDescriptor)
+        subscribe(query)
     }
 
     deinit {
-        subscription.cancel()
+        subscription?.cancel()
     }
 
-    private func subscribe(fetchDescriptor: FetchDescriptor<Model>) {
-        debug { logger.debug("\(Self.self).\(#function)") }
-        subscription = Task { @MainActor in
-            // Send initial value
+    private func subscribe(_ query: Query<Model>) {
+        debug { logger.debug("\(Self.self).\(#function)(query: \(String(describing: query))") }
+        subscription = Task { [modelContainer = self.modelContainer] in
             do {
-                @Dependency(\.modelContainer) var modelContainer
-                wrappedValue = try modelContainer.mainContext.fetch(fetchDescriptor)
+                let initialResult = try query.results(in: modelContainer)
+                trace {
+                    logger.trace("\(Self.self).results: \(String(describing: initialResult.map { $0.persistentModelID } ))")
+                }
+                storage.wrappedValue = initialResult
 
-                // Listen for changes
                 let changeNotifications = NotificationCenter.default.notifications(named: .NSPersistentStoreRemoteChange)
 
                 for try await _ in changeNotifications {
                     guard !Task.isCancelled else { break }
                     debug { logger.debug("\(Self.self).NSPersistentStoreRemoteChange")}
-                    let result = try modelContainer.mainContext.fetch(fetchDescriptor)
+                    let result = try query.results(in: modelContainer)
                     trace {
-                        logger.trace("\(Self.self).fetchedResults: \(String(describing: result.map { $0.persistentModelID } ))")
+                        logger.trace("\(Self.self).results: \(String(describing: result.map { $0.persistentModelID } ))")
                     }
-                    wrappedValue = result
+                    storage.wrappedValue = result
                 }
             } catch {
                 logger.error("\(error)")
             }
         }
+    }
+
+    @Observable
+    internal class Storage {
+        var wrappedValue: [Model] = []
+        init() {}
     }
 }
 

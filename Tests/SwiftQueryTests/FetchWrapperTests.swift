@@ -104,11 +104,10 @@ struct FetchWrapperTests {
 
             try await Task.sleep(nanoseconds: 100_000_000)
 
-            let adultsResults = try #require(adults)
-
-            #expect(adultsResults.count == 2)
-            #expect(adultsResults[0].name == "Alice")
-            #expect(adultsResults[1].name == "Bob")
+            #expect(adults != nil)
+            #expect(adults?.count == 2)
+            #expect(adults?[0].name == "Alice")
+            #expect(adults?[1].name == "Bob")
 
             try modelContainer.mainContext.transaction {
                 charlie.age = 35
@@ -116,19 +115,19 @@ struct FetchWrapperTests {
 
             try await Task.sleep(nanoseconds: 100_000_000)
 
-            #expect(adultsResults.count == 3)
-//            #expect(adultsResults[2].name == "Charlie")
-//            #expect(adultsResults[2].age == 35)
-//
-//            try modelContainer.mainContext.transaction {
-//                modelContainer.mainContext.delete(bob)
-//            }
-//
-//            try await Task.sleep(nanoseconds: 100_000_000)
-//
-//            #expect(adultsResults.count == 2)
-//            #expect(adultsResults[0].name == "Alice")
-//            #expect(adultsResults[1].name == "Charlie")
+            #expect(adults?.count == 3)
+            #expect(adults?[2].name == "Charlie")
+            #expect(adults?[2].age == 35)
+
+            try modelContainer.mainContext.transaction {
+                modelContainer.mainContext.delete(bob)
+            }
+
+            try await Task.sleep(nanoseconds: 100_000_000)
+
+            #expect(adults?.count == 2)
+            #expect(adults?[0].name == "Alice")
+            #expect(adults?[1].name == "Charlie")
         }
     }
 
