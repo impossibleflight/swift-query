@@ -310,6 +310,95 @@ effectively makes it impossible to use the models returned from a query incorrec
 a multi-context environment, thus guaranteeing the SwiftData concurrency contract at 
 compile time.     
 
+### Observable Queries
+
+Often in the context of view models or views we'd like to passively observe a Query and be notified of changes. SwiftQuery provides property wrappers that automatically update when the underlying data changes. These wrappers use Swift's `@Observable` framework and notify observers whenever the persistent store changes, even if that happens as a result of something like iCloud sync.
+
+Observable queries use the main context by default. If you are using them inside a macro like `@Observable`, you must add `@ObservationIgnored`. Listeners will still be notified, but not through the enclosing observable. 
+
+#### Fetch types
+
+
+`FetchFirst` fetches and tracks the first result matching a query, if any.
+
+```swift
+struct PersonDetailView: View {
+    @FetchFirst(Person.include(#Predicate { $0.name == "Jack" }))
+    private var jack: Person?
+    
+    var body: some View {
+        if let jack {
+            Text("Jack is \(jack.age) years old")
+        } else {
+            Text("Jack not found")
+        }
+    }
+}
+```
+
+`FetchAll` fetches and tracks all results matching a query. 
+
+```swift
+extension Query where T == Person {
+    static var adults: Query {
+        Person.include(#Predicate { $0.age >= 18 }).sortBy(\.name)
+    }
+}
+
+@Observable
+final class PeopleViewModel {
+    @ObservationIgnored
+    @FetchAll(.adults)
+    var adults: [Person]
+    
+    var adultCount: Int {
+        adults.count
+    }
+}
+```
+
+`FetchResults` fetches and tracks results as a lazy `FetchResultsCollection` with configurable batch size. Useful for very large datasets or performance critical screens.
+
+```swift
+@Reducer
+struct PeopleFeature {
+    @ObservableState
+    struct State {
+        @ObservationStateIgnored
+        @FetchResults(Person.sortBy(\.name), batchSize: 50)
+        var people: FetchResultsCollection<Person>?
+        
+        var peopleCount: Int {
+            people?.count ?? 0
+        }
+    }
+    
+    // ...
+}
+```
+
+#### Dependency Injection
+
+All fetch wrappers use [Swift Dependencies](https://github.com/pointfreeco/swift-dependencies) to access the model container. In your app setup:
+
+```swift
+@main
+struct MyApp: App {
+    let container = ModelContainer(for: Person.self)
+    
+    init() {
+        prepareDependencies {
+            $0.modelContainer = container
+        }
+    }
+    
+    // ...
+}
+```
+
+This is also what enables them to be used outside of the SwiftUI environment.
+
+
 ## Installation
 
 You can add SwiftQuery to an Xcode project by adding it to your project as a package.

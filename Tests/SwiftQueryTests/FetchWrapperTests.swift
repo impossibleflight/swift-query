@@ -130,12 +130,56 @@ struct FetchWrapperTests {
         }
     }
 
+    @Test func fetchFirst_withDynamicQuery() async throws {
+        try await withDependencies {
+            $0.modelContainer = modelContainer
+        } operation: {
+            let viewModel = ViewModel()
+            
+            let alice = Person(name: "Alice", age: 30)
+            let bob = Person(name: "Bob", age: 25)
+            
+            try modelContainer.mainContext.transaction {
+                modelContainer.mainContext.insert(alice)
+                modelContainer.mainContext.insert(bob)
+            }
+            
+            try await Task.sleep(nanoseconds: 100_000_000)
+            
+            viewModel.updateQuery(name: "Alice")
+            try await Task.sleep(nanoseconds: 100_000_000)
+            
+            #expect(viewModel.person?.name == "Alice")
+            
+            viewModel.updateQuery(name: "Bob")
+            try await Task.sleep(nanoseconds: 100_000_000)
+            
+            #expect(viewModel.person?.name == "Bob")
+        }
+    }
+
+
     @Test func recordsIssue_whenMissingModelContainer() {
         withKnownIssue {
             @FetchFirst(.jack) var jack: Person?
         }
     }
 }
+
+@MainActor
+@Observable
+class ViewModel {
+    @ObservationIgnored
+    @FetchFirst(Query<Person>()) var person: Person?
+
+    func updateQuery(name: String) {
+        let query = Person.include(#Predicate { person in
+            person.name == name
+        })
+        _person = FetchFirst(query)
+    }
+}
+
 
 extension Query where T == Person {
     static var jack: Query {
