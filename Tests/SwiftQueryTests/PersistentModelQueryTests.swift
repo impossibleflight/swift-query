@@ -68,4 +68,12 @@ struct PersistentModelQueryTests {
         #expect(modelQuery.relationshipKeyPaths.count == directQuery.relationshipKeyPaths.count)
         #expect(modelQuery.relationshipKeyPaths.contains(\Person.name) == directQuery.relationshipKeyPaths.contains(\Person.name))
     }
+
+    @Test func fetchKeyPaths() async throws {
+        let modelQuery = Person.fetchKeyPaths(\.name)
+        let directQuery = Query<Person>().fetchKeyPaths(\.name)
+        
+        #expect(modelQuery.propertiesToFetch.count == directQuery.propertiesToFetch.count)
+        #expect(modelQuery.propertiesToFetch.contains(\Person.name) == directQuery.propertiesToFetch.contains(\Person.name))
+    }
 }

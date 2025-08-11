@@ -40,6 +40,7 @@ public struct Query<T: PersistentModel> {
 
     public var relationshipKeyPaths: [PartialKeyPath<T>] = []
 
+    public var propertiesToFetch: [PartialKeyPath<T>] = []
 
     /// SwiftData compatible sort descriptors generated from the query's sort configuration.
     public var sortDescriptors: [SortDescriptor<T>] {
@@ -53,6 +54,7 @@ public struct Query<T: PersistentModel> {
             descriptor.fetchLimit = range.upperBound - range.lowerBound
         }
         descriptor.relationshipKeyPathsForPrefetching = relationshipKeyPaths
+        descriptor.propertiesToFetch = propertiesToFetch
         return descriptor
     }
 
@@ -66,12 +68,14 @@ public struct Query<T: PersistentModel> {
         predicate: Predicate<T>? = nil,
         sortBy: [AnySortDescriptor<T>] = [],
         range: Range<Int>? = nil,
-        prefetchRelationships: [PartialKeyPath<T>] = []
+        prefetchRelationships: [PartialKeyPath<T>] = [],
+        propertiesToFetch: [PartialKeyPath<T>] = []
     ) {
         self.predicate = predicate
         self.sortBy = sortBy
         self.range = range
         self.relationshipKeyPaths = prefetchRelationships
+        self.propertiesToFetch = propertiesToFetch
     }
 
     /// Returns a new query that includes only objects matching the given predicate.
@@ -103,7 +107,8 @@ public struct Query<T: PersistentModel> {
             predicate: compoundPredicate,
             sortBy: sortBy,
             range: range,
-            prefetchRelationships: relationshipKeyPaths
+            prefetchRelationships: relationshipKeyPaths,
+            propertiesToFetch: propertiesToFetch
         )
     }
 
@@ -150,7 +155,8 @@ public struct Query<T: PersistentModel> {
             predicate: predicate,
             sortBy: sortBy.map { $0.reversed() },
             range: range,
-            prefetchRelationships: relationshipKeyPaths
+            prefetchRelationships: relationshipKeyPaths,
+            propertiesToFetch: propertiesToFetch
         )
     }
 
@@ -174,6 +180,7 @@ public struct Query<T: PersistentModel> {
                 sortBy: sortBy,
                 range: range,
                 prefetchRelationships: relationshipKeyPaths,
+                propertiesToFetch: propertiesToFetch
             )
         }
     }
@@ -206,7 +213,8 @@ public extension Query {
             predicate: predicate,
             sortBy: sortBy + [.init(keyPath, order: order)],
             range: range,
-            prefetchRelationships: relationshipKeyPaths
+            prefetchRelationships: relationshipKeyPaths,
+            propertiesToFetch: propertiesToFetch
         )
     }
 
@@ -231,7 +239,8 @@ public extension Query {
             predicate: predicate,
             sortBy: sortBy + [.init(keyPath, order: order)],
             range: range,
-            prefetchRelationships: relationshipKeyPaths
+            prefetchRelationships: relationshipKeyPaths,
+            propertiesToFetch: propertiesToFetch
         )
     }
 
@@ -256,7 +265,8 @@ public extension Query {
             predicate: predicate,
             sortBy: sortBy + [.init(keyPath, comparator: comparator, order: order)],
             range: range,
-            prefetchRelationships: relationshipKeyPaths
+            prefetchRelationships: relationshipKeyPaths,
+            propertiesToFetch: propertiesToFetch
         )
     }
 
@@ -281,12 +291,11 @@ public extension Query {
             predicate: predicate,
             sortBy: sortBy + [.init(keyPath, comparator: comparator, order: order)],
             range: range,
-            prefetchRelationships: relationshipKeyPaths
+            prefetchRelationships: relationshipKeyPaths,
+            propertiesToFetch: propertiesToFetch
         )
     }
 }
-
-
 
 public extension Query {
     /// Returns a new query that prefetches the specified relationship when executing the fetch.
@@ -315,7 +324,41 @@ public extension Query {
             predicate: predicate,
             sortBy: sortBy,
             range: range,
-            prefetchRelationships: relationshipKeyPaths + [keyPath]
+            prefetchRelationships: relationshipKeyPaths + [keyPath],
+            propertiesToFetch: propertiesToFetch
         )
+    }
+
+    /// Returns a new query that fetches only the specified key paths when executing the fetch.
+    ///
+    /// This can improve performance by reducing memory usage when you only need specific properties.
+    /// Properties not included will be faulted and loaded on demand.
+    ///
+    /// - Parameter keyPaths: Array of key paths to the properties to fetch
+    /// - Returns: A new query with the additional properties marked for fetching
+    func fetchKeyPaths(_ keyPaths: [PartialKeyPath<T>]) -> Self {
+        Query(
+            predicate: predicate,
+            sortBy: sortBy,
+            range: range,
+            prefetchRelationships: relationshipKeyPaths,
+            propertiesToFetch: propertiesToFetch + keyPaths
+        )
+    }
+
+    /// Returns a new query that fetches only the specified key paths when executing the fetch.
+    ///
+    /// This can improve performance by reducing memory usage when you only need specific properties.
+    /// Properties not included will be faulted and loaded on demand.
+    ///
+    /// - Parameter keyPaths: Key paths to the properties to fetch
+    /// - Returns: A new query with the additional properties marked for fetching
+    ///
+    /// ## Example
+    /// ```swift
+    /// let lightweightPeople = Person.fetchKeyPaths(\.name, \.age)
+    /// ```
+    func fetchKeyPaths(_ keyPaths: PartialKeyPath<T>...) -> Self {
+        fetchKeyPaths(keyPaths)
     }
 }

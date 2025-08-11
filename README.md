@@ -177,6 +177,15 @@ let ordersWithDetails = Order
     .prefetchRelationship(\.items)
 ```
 
+#### Fetching specific properties
+
+To reduce memory usage, you can fetch only specific properties instead of full objects:
+
+```swift
+// Fetch only specific properties for better performance
+let lightweightPeople = Person.fetchKeyPaths(\.name, \.age)
+```
+
 ### Executing queries
 
 Queries are just descriptions of how to fetch objects from a context. To make them 
