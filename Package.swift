@@ -18,6 +18,7 @@ let package = Package(
         ),
     ],
     dependencies: [
+        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.8.1"),
         .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.4.3"),
     ],
     targets: [
@@ -25,7 +26,9 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "SwiftQuery",
-            dependencies: []
+            dependencies: [
+                .product(name: "Dependencies", package: "swift-dependencies")
+            ]
         ),
         .testTarget(
             name: "SwiftQueryTests",

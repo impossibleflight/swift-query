@@ -78,6 +78,15 @@ struct PersistentModelFetchTests {
         #expect(modelResult.age == directResult.age)
         #expect(modelResult.age != 999) // Should find existing, not create new
     }
+
+    @Test func deleteAll() throws {
+        #expect(try Person.count(in: modelContainer) == 3)
+        
+        try Person.deleteAll(in: modelContainer)
+        
+        #expect(try Person.count(in: modelContainer) == 0)
+        #expect(try Person.isEmpty(in: modelContainer) == true)
+    }
 }
 
 struct PersistentModelConcurrentFetchTests {
@@ -165,6 +174,17 @@ struct PersistentModelConcurrentFetchTests {
             #expect(modelPerson.name == directPerson.name)
             #expect(modelPerson.age == directPerson.age)
             #expect(modelPerson.age != 999) // Should find existing, not create new
+        }
+    }
+
+    @Test func deleteAll() async throws {
+        try await modelContainer.createQueryActor().perform { _ in
+            #expect(try Person.count() == 3)
+            
+            try Person.deleteAll()
+            
+            #expect(try Person.count() == 0)
+            #expect(try Person.isEmpty() == true)
         }
     }
 }

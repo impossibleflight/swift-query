@@ -25,7 +25,7 @@ library, and enforced at compile time, making it painless to adopt best practice
 
 ```swift
 // Query from the main context
-let people = Query<Person>()
+let people = try Query<Person>()
     .include(#Predicate { $0.age >= 18 } )
     .sortBy(\.age)
     .results(in: modelContainer)
@@ -53,7 +53,7 @@ Task.detached {
 ### Building Queries
 
 Queries are an expressive layer on top of SwiftData that allow us to quickly build 
-complex fetch decriptors by successively applying refinements. The resulting query can 
+complex fetch descriptors by successively applying refinements. The resulting query can 
 be saved for reuse or performed immediately. 
 
 Queries can be initialized explicitly, but `PersistentModel` has also been extended 
@@ -161,7 +161,27 @@ been applied to this query, we'll just get the first five results:
 Person[0..<5]
 ```
 
-### Fetching results
+#### Prefetching relationships
+
+When you know you'll need related objects, you can prefetch relationships to reduce trips to the persistent store:
+
+```swift
+// Prefetch multiple relationships
+let ordersWithDetails = Order
+    .include(#Predicate { $0.status == .active })
+    .prefetchRelationships(\.customer, \.items)
+```
+
+#### Fetching specific properties
+
+To reduce memory usage, you can fetch only specific properties instead of full objects:
+
+```swift
+// Fetch only specific properties for better performance
+let lightweightPeople = Person.fetchKeyPaths(\.name, \.age)
+```
+
+### Executing queries
 
 Queries are just descriptions of how to fetch objects from a context. To make them 
 useful, we want to be able to perform them. When fetching results on the main actor,
@@ -174,13 +194,13 @@ Often we just want to fetch a single result.
 ```swift
 let jillQuery = Person.include(#Predicate { $0.name == "Jill" })
 
-let jill = jillQuery.first(in: modelContainer)
-let lastJill  = jillQuery.last(in: modelContainer)
+let jill = try jillQuery.first(in: modelContainer)
+let lastJill  = try jillQuery.last(in: modelContainer)
 ```
 Or any result:
 
 ```swift
-let anyone = Person.any(in: modelContainer)
+let anyone = try Person.any(in: modelContainer)
 ```
 
 
@@ -190,7 +210,7 @@ When we want to fetch all query results in memory, we can use `results`:
  
 ```swift
 let notJillQuery = Person.exclude(#Predicate { $0.name == "Jill" })
-let notJills = notJillQuery.results(in: modelContainer)
+let notJills = try notJillQuery.results(in: modelContainer)
 ```
 
 #### Lazy results
@@ -199,7 +219,7 @@ Sometimes we want a result that is lazily evaluated. For these cases we can get 
 `FetchResultsCollection` using `fetchedResults`:
 
 ```swift
-let lazyAdults = Person
+let lazyAdults = try Person
     .include(#Predicate { $0.age > 25 })
     .fetchedResults(in: modelContainer)
 ```
@@ -211,16 +231,35 @@ based on a set of filters, or create a new one by default in the case that objec
 does not yet exist. This is easy with SwiftQuery using `findOrCreate`:
 
 ```swift
-let jill = Person
+let jill = try Person
     .include(#Predicate { $0.name == "Jill" })
     .findOrCreate(in: container) {
         Person(name: "Jill")
     }
 ```
 
+#### Deleting objects
+
+We can delete just the objects matching a refined query:
+
+```swift
+try Person
+    .include(#Predicate { $0.name == "Jill" })
+    .delete(in: container)
+```
+
+Or we can delete every record of a particular type:
+
+```swift
+try Query<Person>().delete(in: container)
+try Person.deleteAll(in: container)
+```
+
+`PersistentModel.deleteAll` is equivalent to deleting with an empty query.
+
 ### Async fetches
 
-Where SwiftQuery really shines is it's automatic support for performing queries
+Where SwiftQuery really shines is its automatic support for performing queries
 in a concurrency environment. The current isolation context is passed in to each function
 that performs a query, so if you have a custom model actor, you can freely perform
 queries and operate on the results inside the actor:
@@ -274,6 +313,95 @@ only `Sendable` values can be transported across the boundary. This means the co
 effectively makes it impossible to use the models returned from a query incorrectly in 
 a multi-context environment, thus guaranteeing the SwiftData concurrency contract at 
 compile time.     
+
+### Observable Queries
+
+Often in the context of view models or views we'd like to passively observe a Query and be notified of changes. SwiftQuery provides property wrappers that automatically update when the underlying data changes. These wrappers use Swift's `@Observable` framework and notify observers whenever the persistent store changes, even if that happens as a result of something like iCloud sync.
+
+Observable queries use the main context by default. If you are using them inside a macro like `@Observable`, you must add `@ObservationIgnored`. Listeners will still be notified, but not through the enclosing observable. 
+
+#### Fetch types
+
+
+`FetchFirst` fetches and tracks the first result matching a query, if any.
+
+```swift
+struct PersonDetailView: View {
+    @FetchFirst(Person.include(#Predicate { $0.name == "Jack" }))
+    private var jack: Person?
+    
+    var body: some View {
+        if let jack {
+            Text("Jack is \(jack.age) years old")
+        } else {
+            Text("Jack not found")
+        }
+    }
+}
+```
+
+`FetchAll` fetches and tracks all results matching a query. 
+
+```swift
+extension Query where T == Person {
+    static var adults: Query {
+        Person.include(#Predicate { $0.age >= 18 }).sortBy(\.name)
+    }
+}
+
+@Observable
+final class PeopleViewModel {
+    @ObservationIgnored
+    @FetchAll(.adults)
+    var adults: [Person]
+    
+    var adultCount: Int {
+        adults.count
+    }
+}
+```
+
+`FetchResults` fetches and tracks results as a lazy `FetchResultsCollection` with configurable batch size. Useful for very large datasets or performance critical screens.
+
+```swift
+@Reducer
+struct PeopleFeature {
+    @ObservableState
+    struct State {
+        @ObservationStateIgnored
+        @FetchResults(Person.sortBy(\.name), batchSize: 50)
+        var people: FetchResultsCollection<Person>?
+        
+        var peopleCount: Int {
+            people?.count ?? 0
+        }
+    }
+    
+    // ...
+}
+```
+
+#### Dependency Injection
+
+All fetch wrappers use [Swift Dependencies](https://github.com/pointfreeco/swift-dependencies) to access the model container. In your app setup:
+
+```swift
+@main
+struct MyApp: App {
+    let container = ModelContainer(for: Person.self)
+    
+    init() {
+        prepareDependencies {
+            $0.modelContainer = container
+        }
+    }
+    
+    // ...
+}
+```
+
+This is also what enables them to be used outside of the SwiftUI environment.
+
 
 ## Installation
 

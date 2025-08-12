@@ -269,4 +269,61 @@ struct QueryTests {
         }
     }
 
+    @Test func prefetchRelationships_single() async throws {
+        let query = Query<Person>()
+            .prefetchRelationships(\.name)
+        
+        #expect(query.relationshipKeyPaths.count == 1)
+        #expect(query.relationshipKeyPaths.contains(\Person.name))
+    }
+
+    @Test func prefetchRelationships_multiple() async throws {
+        let query = Query<Person>()
+            .prefetchRelationships(\.name, \.age)
+        
+        #expect(query.relationshipKeyPaths.count == 2)
+        #expect(query.relationshipKeyPaths.contains(\Person.name))
+        #expect(query.relationshipKeyPaths.contains(\Person.age))
+    }
+
+    @Test func prefetchRelationships_withOtherModifiers() async throws {
+        let predicate = #Predicate<Person> { $0.age >= 18 }
+        let query = Person.include(predicate)
+            .sortBy(\.name)
+            .prefetchRelationships(\.age)
+        
+        #expect(query.predicate != nil)
+        #expect(query.sortBy.count == 1)
+        #expect(query.relationshipKeyPaths.count == 1)
+        #expect(query.relationshipKeyPaths.contains(\Person.age))
+    }
+
+    @Test func fetchKeyPaths_single() async throws {
+        let query = Query<Person>()
+            .fetchKeyPaths(\.name)
+        
+        #expect(query.propertiesToFetch.count == 1)
+        #expect(query.propertiesToFetch.contains(\Person.name))
+    }
+
+    @Test func fetchKeyPaths_multiple() async throws {
+        let query = Query<Person>()
+            .fetchKeyPaths(\.name, \.age)
+        
+        #expect(query.propertiesToFetch.count == 2)
+        #expect(query.propertiesToFetch.contains(\Person.name))
+        #expect(query.propertiesToFetch.contains(\Person.age))
+    }
+
+    @Test func fetchKeyPaths_withOtherModifiers() async throws {
+        let predicate = #Predicate<Person> { $0.age >= 18 }
+        let query = Person.include(predicate)
+            .sortBy(\.name)
+            .fetchKeyPaths(\.age)
+        
+        #expect(query.predicate != nil)
+        #expect(query.sortBy.count == 1)
+        #expect(query.propertiesToFetch.count == 1)
+        #expect(query.propertiesToFetch.contains(\Person.age))
+    }
 }
