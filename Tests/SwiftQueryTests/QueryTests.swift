@@ -269,29 +269,28 @@ struct QueryTests {
         }
     }
 
-    @Test func prefetchRelationship_single() async throws {
+    @Test func prefetchRelationships_single() async throws {
         let query = Query<Person>()
-            .prefetchRelationship(\.name)
+            .prefetchRelationships(\.name)
         
         #expect(query.relationshipKeyPaths.count == 1)
         #expect(query.relationshipKeyPaths.contains(\Person.name))
     }
 
-    @Test func prefetchRelationship_multiple() async throws {
+    @Test func prefetchRelationships_multiple() async throws {
         let query = Query<Person>()
-            .prefetchRelationship(\.name)
-            .prefetchRelationship(\.age)
+            .prefetchRelationships(\.name, \.age)
         
         #expect(query.relationshipKeyPaths.count == 2)
         #expect(query.relationshipKeyPaths.contains(\Person.name))
         #expect(query.relationshipKeyPaths.contains(\Person.age))
     }
 
-    @Test func prefetchRelationship_withOtherModifiers() async throws {
+    @Test func prefetchRelationships_withOtherModifiers() async throws {
         let predicate = #Predicate<Person> { $0.age >= 18 }
         let query = Person.include(predicate)
             .sortBy(\.name)
-            .prefetchRelationship(\.age)
+            .prefetchRelationships(\.age)
         
         #expect(query.predicate != nil)
         #expect(query.sortBy.count == 1)

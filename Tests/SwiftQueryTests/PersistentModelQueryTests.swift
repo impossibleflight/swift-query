@@ -61,9 +61,9 @@ struct PersistentModelQueryTests {
         #expect(modelQuery.sortDescriptors.first?.order == directQuery.sortDescriptors.first?.order)
     }
 
-    @Test func prefetchRelationship() async throws {
-        let modelQuery = Person.prefetchRelationship(\.name)
-        let directQuery = Query<Person>().prefetchRelationship(\.name)
+    @Test func prefetchRelationships() async throws {
+        let modelQuery = Person.prefetchRelationships(\.name)
+        let directQuery = Query<Person>().prefetchRelationships(\.name)
         
         #expect(modelQuery.relationshipKeyPaths.count == directQuery.relationshipKeyPaths.count)
         #expect(modelQuery.relationshipKeyPaths.contains(\Person.name) == directQuery.relationshipKeyPaths.contains(\Person.name))

@@ -166,15 +166,10 @@ Person[0..<5]
 When you know you'll need related objects, you can prefetch relationships to reduce trips to the persistent store:
 
 ```swift
-// Prefetch a single relationship
-let ordersWithCustomers = Order
-    .include(#Predicate { $0.status == .active })
-    .prefetchRelationship(\.customer)
-
 // Prefetch multiple relationships
 let ordersWithDetails = Order
-    .prefetchRelationship(\.customer)
-    .prefetchRelationship(\.items)
+    .include(#Predicate { $0.status == .active })
+    .prefetchRelationships(\.customer, \.items)
 ```
 
 #### Fetching specific properties

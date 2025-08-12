@@ -2,9 +2,6 @@ import Foundation
 import CoreData
 import Dependencies
 import SwiftData
-#if canImport(SwiftUI)
-import SwiftUI
-#endif
 
 @MainActor
 @propertyWrapper
@@ -57,7 +54,3 @@ public final class FetchAll<Model: PersistentModel>: Observable {
         init() {}
     }
 }
-
-#if canImport(SwiftUI)
-extension FetchAll: DynamicProperty {}
-#endif

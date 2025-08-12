@@ -37,9 +37,11 @@ public struct Query<T: PersistentModel> {
     
     /// A range representing the number of results to skip before returning matches and maximum number of results to fetch. When `nil`, the query will return all matching results.
     public var range: Range<Int>?
-
+    
+    /// Key paths representing related models to fetch as part of this query.
     public var relationshipKeyPaths: [PartialKeyPath<T>] = []
-
+    
+    /// The subset of attributes to fetch for this entity
     public var propertiesToFetch: [PartialKeyPath<T>] = []
 
     /// SwiftData compatible sort descriptors generated from the query's sort configuration.
@@ -298,35 +300,40 @@ public extension Query {
 }
 
 public extension Query {
-    /// Returns a new query that prefetches the specified relationship when executing the fetch.
+    /// Returns a new query that prefetches the specified relationships when executing the fetch.
     ///
     /// Prefetching relationships can improve performance by reducing the number of database
-    /// trips needed when accessing related objects. Multiple relationships can be prefetched
-    /// by chaining multiple calls to this method.
+    /// trips needed when accessing related objects.
     ///
-    /// - Parameter keyPath: Key path to the relationship property to prefetch
-    /// - Returns: A new query with the additional relationship marked for prefetching
-    ///
-    /// ## Example
-    /// ```swift
-    /// // Prefetch single relationship
-    /// let ordersWithCustomers = Order
-    ///     .include(#Predicate { $0.status == .active })
-    ///     .prefetchRelationship(\.customer)
-    ///
-    /// // Prefetch multiple relationships
-    /// let ordersWithDetails = Order
-    ///     .prefetchRelationship(\.customer)
-    ///     .prefetchRelationship(\.items)
-    /// ```
-    func prefetchRelationship(_ keyPath: PartialKeyPath<T>) -> Self {
+    /// - Parameter keyPaths: Array of key paths to the relationships to prefetch
+    /// - Returns: A new query with the additional relationships marked for prefetching
+    func prefetchRelationships(_ keyPaths: [PartialKeyPath<T>]) -> Self {
         Query(
             predicate: predicate,
             sortBy: sortBy,
             range: range,
-            prefetchRelationships: relationshipKeyPaths + [keyPath],
+            prefetchRelationships: relationshipKeyPaths + keyPaths,
             propertiesToFetch: propertiesToFetch
         )
+    }
+    
+    /// Returns a new query that prefetches the specified relationships when executing the fetch.
+    ///
+    /// Prefetching relationships can improve performance by reducing the number of database
+    /// trips needed when accessing related objects.
+    ///
+    /// - Parameter keyPaths: Key paths to the relationships to prefetch
+    /// - Returns: A new query with the additional relationships marked for prefetching
+    ///
+    /// ## Example
+    /// ```swift
+    /// // Prefetch multiple relationships
+    /// let ordersWithDetails = Order
+    ///     .include(#Predicate { $0.status == .active })
+    ///     .prefetchRelationships(\.customer, \.items)
+    /// ```
+    func prefetchRelationships(_ keyPaths: PartialKeyPath<T>...) -> Self {
+        prefetchRelationships(keyPaths)
     }
 
     /// Returns a new query that fetches only the specified key paths when executing the fetch.

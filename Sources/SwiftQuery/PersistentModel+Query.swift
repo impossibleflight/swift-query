@@ -68,9 +68,9 @@ public extension PersistentModel {
 }
 
 public extension PersistentModel {
-    /// Constructs an empty query over this model type and invokes ``Query/prefetchRelationship(_:)`` on that query.
-    static func prefetchRelationship(_ keyPath: PartialKeyPath<Self>) -> Query<Self> {
-        query().prefetchRelationship(keyPath)
+    /// Constructs an empty query over this model type and invokes ``Query/prefetchRelationships(_:)`` on that query.
+    static func prefetchRelationships(_ keyPaths: PartialKeyPath<Self>...) -> Query<Self> {
+        query().prefetchRelationships(keyPaths)
     }
 
     /// Constructs an empty query over this model type and invokes ``Query/fetchKeyPaths(_:)`` on that query.
