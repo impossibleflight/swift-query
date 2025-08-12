@@ -327,5 +327,4 @@ struct QueryTests {
         #expect(query.propertiesToFetch.count == 1)
         #expect(query.propertiesToFetch.contains(\Person.age))
     }
-
 }

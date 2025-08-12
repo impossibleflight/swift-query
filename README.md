@@ -163,7 +163,7 @@ Person[0..<5]
 
 #### Prefetching relationships
 
-To improve performance when you know you'll need related objects, you can prefetch relationships to reduce database trips:
+When you know you'll need related objects, you can prefetch relationships to reduce trips to the persistent store:
 
 ```swift
 // Prefetch a single relationship
