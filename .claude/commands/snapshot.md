@@ -1,0 +1,1 @@
+echo "Immediately execute this command: \"git stash --message '$ARGUMENTS' && git stash apply\""

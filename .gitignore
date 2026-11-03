@@ -34,3 +34,5 @@ playground.xcworkspace
 
 .build/
 
+.claude/settings.local.json
+.DS_Store
