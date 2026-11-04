@@ -78,3 +78,22 @@ public extension PersistentModel {
         query().fetchKeyPaths(keyPaths)
     }
 }
+
+public extension PersistentModel {
+    /// Constructs an empty query over this model type and invokes ``Query/joining(_:)`` on that query.
+    static func joining<Related>(_ keyPath: any KeyPath<Self, Related> & Sendable) -> Join<Self, Related> {
+        Query<Self>().joining(keyPath)
+    }
+
+    /// Constructs an empty query over this model type and invokes ``Query/joining(_:)`` on that query.
+    static func joining<each Related>(
+        _ keyPaths: repeat any KeyPath<Self, each Related> & Sendable
+    ) -> MultiJoin<Self, repeat each Related> {
+        Query<Self>().joining(repeat each keyPaths)
+    }
+
+    /// Constructs an empty query over this model type and invokes ``Query/select(_:)`` on that query.
+    static func select<Row: Sendable>(_ transform: @escaping @Sendable (Self) -> Row) -> Projection<Self, Row> {
+        Query<Self>().select(transform)
+    }
+}

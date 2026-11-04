@@ -40,7 +40,7 @@ struct SnapshotSchemaTests {
 
         let model = try #require(NSManagedObjectModel.makeManagedObjectModel(for: [Author.self, Book.self]))
         let coordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
-        try coordinator.addPersistentStore(
+        _ = try coordinator.addPersistentStore(
             type: .sqlite,
             at: url,
             options: [NSReadOnlyPersistentStoreOption: true, NSPersistentHistoryTrackingKey: true]
