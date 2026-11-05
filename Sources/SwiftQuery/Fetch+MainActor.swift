@@ -16,7 +16,7 @@ public extension Query {
     func first(in container: ModelContainer) throws -> T? {
         var descriptor = self
         descriptor.range = 0..<1
-        let result = try container.mainContext.fetch(fetchDescriptor)
+        let result = try container.mainContext.fetch(descriptor.fetchDescriptor)
         return result.first
     }
 
