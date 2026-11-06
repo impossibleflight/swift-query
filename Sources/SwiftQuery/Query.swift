@@ -28,7 +28,7 @@ import SwiftData
 /// }
 /// ```
 ///
-public struct Query<T: PersistentModel> {
+public struct Query<T: PersistentModel>: Sendable {
     /// The predicate used to filter results. When `nil`, returns all objects of type `T`.
     public var predicate: Predicate<T>?
     
@@ -39,10 +39,10 @@ public struct Query<T: PersistentModel> {
     public var range: Range<Int>?
     
     /// Key paths representing related models to fetch as part of this query.
-    public var relationshipKeyPaths: [PartialKeyPath<T>] = []
+    public var relationshipKeyPaths: [PartialKeyPath<T> & Sendable] = []
     
     /// The subset of attributes to fetch for this entity
-    public var propertiesToFetch: [PartialKeyPath<T>] = []
+    public var propertiesToFetch: [PartialKeyPath<T> & Sendable] = []
 
     /// SwiftData compatible sort descriptors generated from the query's sort configuration.
     public var sortDescriptors: [SortDescriptor<T>] {
@@ -70,8 +70,8 @@ public struct Query<T: PersistentModel> {
         predicate: Predicate<T>? = nil,
         sortBy: [AnySortDescriptor<T>] = [],
         range: Range<Int>? = nil,
-        prefetchRelationships: [PartialKeyPath<T>] = [],
-        propertiesToFetch: [PartialKeyPath<T>] = []
+        prefetchRelationships: [PartialKeyPath<T> & Sendable] = [],
+        propertiesToFetch: [PartialKeyPath<T> & Sendable] = []
     ) {
         self.predicate = predicate
         self.sortBy = sortBy
@@ -307,7 +307,7 @@ public extension Query {
     ///
     /// - Parameter keyPaths: Array of key paths to the relationships to prefetch
     /// - Returns: A new query with the additional relationships marked for prefetching
-    func prefetchRelationships(_ keyPaths: [PartialKeyPath<T>]) -> Self {
+    func prefetchRelationships(_ keyPaths: [PartialKeyPath<T> & Sendable]) -> Self {
         Query(
             predicate: predicate,
             sortBy: sortBy,
@@ -332,7 +332,7 @@ public extension Query {
     ///     .include(#Predicate { $0.status == .active })
     ///     .prefetchRelationships(\.customer, \.items)
     /// ```
-    func prefetchRelationships(_ keyPaths: PartialKeyPath<T>...) -> Self {
+    func prefetchRelationships(_ keyPaths: (PartialKeyPath<T> & Sendable)...) -> Self {
         prefetchRelationships(keyPaths)
     }
 
@@ -343,7 +343,7 @@ public extension Query {
     ///
     /// - Parameter keyPaths: Array of key paths to the properties to fetch
     /// - Returns: A new query with the additional properties marked for fetching
-    func fetchKeyPaths(_ keyPaths: [PartialKeyPath<T>]) -> Self {
+    func fetchKeyPaths(_ keyPaths: [PartialKeyPath<T> & Sendable]) -> Self {
         Query(
             predicate: predicate,
             sortBy: sortBy,
@@ -365,7 +365,7 @@ public extension Query {
     /// ```swift
     /// let lightweightPeople = Person.fetchKeyPaths(\.name, \.age)
     /// ```
-    func fetchKeyPaths(_ keyPaths: PartialKeyPath<T>...) -> Self {
+    func fetchKeyPaths(_ keyPaths: (PartialKeyPath<T> & Sendable)...) -> Self {
         fetchKeyPaths(keyPaths)
     }
 }

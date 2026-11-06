@@ -26,7 +26,7 @@ import SwiftData
 // Swift 6.4, optional chaining on a closure parameter typed by a one-element parameter pack does
 // not compile (`author?.name` fails, `author.map(\.name)` works). Keeping packs out of the common
 // case spares callers that wart.
-public struct Join<T: PersistentModel, Related> {
+public struct Join<T: PersistentModel, Related>: Sendable {
     /// The query whose results are projected.
     public var query: Query<T>
     let keyPath: any KeyPath<T, Related> & Sendable
@@ -51,7 +51,7 @@ public struct Join<T: PersistentModel, Related> {
 ///
 /// Build one with ``Query/joining(_:)-((repeat_)_)`` by passing more than one key path. It behaves
 /// as ``Join`` does, with one `select` argument per key path.
-public struct MultiJoin<T: PersistentModel, each Related> {
+public struct MultiJoin<T: PersistentModel, each Related>: Sendable {
     /// The query whose results are projected.
     public var query: Query<T>
     let keyPaths: (repeat any KeyPath<T, each Related> & Sendable)
@@ -86,7 +86,7 @@ public extension Query {
     func joining<each Related>(
         _ keyPaths: repeat any KeyPath<T, each Related> & Sendable
     ) -> MultiJoin<T, repeat each Related> {
-        var prefetched: [PartialKeyPath<T>] = []
+        var prefetched: [PartialKeyPath<T> & Sendable] = []
         repeat prefetched.append(each keyPaths)
         return MultiJoin(query: prefetchRelationships(prefetched), keyPaths: (repeat each keyPaths))
     }
@@ -103,8 +103,10 @@ public extension Query {
 /// A query whose results are mapped into values of `Row` as they are fetched.
 ///
 /// Rows are `Sendable`, so a projection performed inside a model actor can return them across
-/// the actor boundary, which a query returning models cannot.
-public struct Projection<T: PersistentModel, Row: Sendable> {
+/// the actor boundary, which a query returning models cannot. The projection itself is `Sendable`
+/// too, so it can be built on the main actor and performed on a ``QueryActor``, which is what
+/// ``FetchAll`` and ``FetchFirst`` do with one.
+public struct Projection<T: PersistentModel, Row: Sendable>: Sendable {
     /// The query whose results are projected.
     public var query: Query<T>
     let transform: @Sendable (T) -> Row
