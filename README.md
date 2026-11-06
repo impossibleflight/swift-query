@@ -4,7 +4,7 @@
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fimpossibleflight%2Fswift-query%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/impossibleflight/swift-query)
 
 
-A simple query language for SwiftData with automatic support for Swift concurrency.
+A simple query language for SwiftData with automatic support for Swift concurrency, value snapshots of models, and projections into your own row types.
 
 ## What is SwiftQuery?
 
@@ -314,6 +314,97 @@ effectively makes it impossible to use the models returned from a query incorrec
 a multi-context environment, thus guaranteeing the SwiftData concurrency contract at 
 compile time.     
 
+### Snapshots
+
+Models are tied to the context that fetched them. When a value is wanted instead, for a view
+model, a feature's state, or anything that crosses an actor, `@Snapshotable` generates one.
+Apply it beside `@Model`:
+
+```swift
+@Snapshotable
+@Model final class Book {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var genre: Genre
+    var author: Author?
+}
+```
+
+This adds a nested `Book.Snapshot`, a struct that is `Identifiable`, `Hashable` and `Sendable`,
+and a `snapshot` property that produces one:
+
+```swift
+let snapshot = book.snapshot
+snapshot.title            // String
+snapshot.author           // PersistentIdentifier?
+```
+
+Every stored property is mirrored. Related models arrive as `PersistentIdentifier`s rather than
+objects, so a snapshot can leave the context safely. Properties marked `@Transient`, computed
+properties and static members are left out. If the model has a stored `id`, the snapshot uses it
+for `Identifiable`; otherwise it uses the persistent identifier.
+
+The mapping from a stored type to its snapshot type is the `SnapshotConvertible` protocol, which
+the library provides for the standard value types, for optionals and arrays of convertible
+types, and for models. A custom stored type, such as an enum, needs a one-line conformance:
+
+```swift
+extension Genre: SnapshotConvertible {}
+```
+
+A stored type without one is a compile error at the use site, so a snapshot can never silently
+omit a property.
+
+### Joins and projections
+
+A projection maps each fetched model into a value of a type you declare. The closure runs inside
+the context that performs the fetch, so it may read anything on the model, and only the rows
+leave the context:
+
+```swift
+struct BookRow: Hashable, Sendable {
+    var book: Book.Snapshot
+    var authorName: String?
+}
+
+let rows = try Book
+    .sortBy(\.title)
+    .joining(\.author)
+    .select { book, author in
+        BookRow(book: book.snapshot, authorName: author?.name)
+    }
+    .results(in: container)
+```
+
+`joining` names a relationship the projection reads. It is prefetched, so the related objects
+arrive with the results rather than as a fault per row, and its value is handed to `select`
+beside the model, typed as the relationship is declared: a model, an optional, or an array.
+Several relationships go in one call and arrive in the same order:
+
+```swift
+Book.joining(\.author, \.tags).select { book, author, tags in ... }
+```
+
+`select` alone projects without a join, and takes a key path:
+
+```swift
+let snapshots = try Author.sortBy(\.name).select(\.snapshot).results(in: container)
+```
+
+This is not a database join. SwiftData fetches the related objects and the closure sees them in
+memory, so an aggregate over a to-many relationship, such as a count of an author's books, is
+computed in memory too.
+
+A projection performs like a query: `results`, `first` and `last`, on the main actor with
+`in:` or inside any model actor. Because rows are `Sendable`, a projection performed in a
+`QueryActor` can return them:
+
+```swift
+let rows = try await container.createQueryActor().perform { _ in
+    try Book.joining(\.author).select { BookRow(book: $0.snapshot, authorName: $1?.name) }.results()
+}
+```
+
 ### Observable Queries
 
 Often in the context of view models or views we'd like to passively observe a Query and be notified of changes. SwiftQuery provides property wrappers that automatically update when the underlying data changes. These wrappers use Swift's `@Observable` framework and notify observers whenever the persistent store changes, even if that happens as a result of something like iCloud sync.
@@ -380,6 +471,35 @@ struct PeopleFeature {
     // ...
 }
 ```
+
+#### Observing snapshots and rows
+
+`FetchAll` and `FetchFirst` also take a projection. The wrapped value is then the projected rows,
+or the first one, rather than models:
+
+```swift
+@Observable
+final class LibraryViewModel {
+    @ObservationIgnored
+    @FetchAll(Book.sortBy(\.title).joining(\.author).select { book, author in
+        BookRow(book: book.snapshot, authorName: author?.name)
+    })
+    var books: [BookRow]
+
+    @ObservationIgnored
+    @FetchFirst(Author.include(#Predicate { $0.name == "Ursula" }).select(\.snapshot))
+    var ursula: Author.Snapshot?
+}
+```
+
+Two things differ from observing models. The fetch and the `select` closure run on a
+`QueryActor`, off the main thread, so the first value arrives asynchronously: the wrapped value is
+empty, or `nil`, until it does. And the wrapper re-fetches only when the store records a change
+to a type the projection reads: the model type and every joined type. It finds out which types
+changed by reading SwiftData's persistent history after each store change notification, so
+local saves, other processes and sync are all covered, and a save to an unrelated model type
+costs nothing. If the `select` closure reads a relationship, join it, or changes to it will not
+be noticed.
 
 #### Dependency Injection
 

@@ -29,6 +29,7 @@ Swift Testing, one suite per source file, all sharing the `Person` model in `Tes
 - Use `#require` to unwrap, then use the value. Do not test for nil and optional-chain afterwards.
 - Do not comment on what an expectation obviously asserts.
 - `FetchTests` and `ConcurrentFetchTests` mirror each other: the same operations on the main actor and inside a model actor. The `PersistentModel*Tests` suites cover the static forms. A new operation goes in each suite that applies.
+- `FetchWrapperTests` and `FetchProjectionTests` wait on a short sleep after each save for the wrapper to re-fetch. Run them a few times when touching the wrappers; a failure that appears only sometimes is a timing problem in the wrapper, not the test.
 - Fetch wrapper tests wait on a short `Task.sleep` for the change notification to land before asserting.
 
 ## Pull requests

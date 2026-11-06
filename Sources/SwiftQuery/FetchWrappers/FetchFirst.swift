@@ -3,25 +3,52 @@ import CoreData
 import Dependencies
 import SwiftData
 
+/// Fetches and tracks the first result of a query, or the first row of a projection, if any.
+///
+/// Given a ``Query``, the wrapped value is the first matching model, fetched on the main context
+/// and fetched again after every change to the store. Given a ``Projection``, the wrapped value is
+/// the first projected row, fetched on a ``QueryActor`` and fetched again whenever the store records
+/// a change to the projection's model type or to a type it joins. The row arrives asynchronously,
+/// so the wrapped value is `nil` until the first fetch completes.
+///
+/// ```swift
+/// @FetchFirst(Person.include(#Predicate { $0.name == "Jack" }))
+/// var jack: Person?
+///
+/// @FetchFirst(Author.include(#Predicate { $0.name == "Ursula" }).select(\.snapshot))
+/// var ursula: Author.Snapshot?
+/// ```
 @MainActor
 @propertyWrapper
-public final class FetchFirst<Model: PersistentModel> {
-    public var wrappedValue: Model? {
+public final class FetchFirst<Element> {
+    public var wrappedValue: Element? {
         storage.wrappedValue
     }
     private var storage: Storage = .init()
     private var subscription: (Task<Void, Never>)?
     @Dependency(\.modelContainer) private var modelContainer
 
-    public init(_ query: Query<Model>) {
+    /// Tracks the first model matching `query`, fetched on the main context.
+    public init(_ query: Query<Element>) where Element: PersistentModel {
         subscribe(query)
+    }
+
+    /// Tracks the first row of `projection`, fetched on a ``QueryActor``.
+    public init<T>(_ projection: Projection<T, Element>) where Element: Sendable {
+        debug { logger.debug("\(Self.self).\(#function)(query: \(String(describing: projection.query))") }
+        subscription = observe(projection, in: modelContainer) { projection, actor in
+            try projection.first(isolation: actor)
+        } update: { [storage] row in
+            trace { logger.trace("\(Self.self).first: \(row == nil ? "nil" : "row")") }
+            storage.wrappedValue = row
+        }
     }
 
     deinit {
         subscription?.cancel()
     }
 
-    private func subscribe(_ query: Query<Model>) {
+    private func subscribe(_ query: Query<Element>) where Element: PersistentModel {
         debug { logger.debug("\(Self.self).\(#function)(query: \(String(describing: query))") }
         subscription = Task { [modelContainer = self.modelContainer] in
             do {
@@ -46,7 +73,7 @@ public final class FetchFirst<Model: PersistentModel> {
 
     @Observable
     internal class Storage {
-        var wrappedValue: Model?
+        var wrappedValue: Element?
         init() {}
     }
 }
