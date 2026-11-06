@@ -120,6 +120,49 @@ struct SnapshotableMacroTests {
         )
     }
 
+    @Test func matchesTheModelsAccessLevel() {
+        assertExpansion(
+            """
+            @Snapshotable
+            public final class Person {
+                public var name: String
+                public var friends: [Person]
+            }
+            """,
+            expanded: """
+            public final class Person {
+                public var name: String
+                public var friends: [Person]
+
+                public struct Snapshot: Identifiable, Hashable, Sendable {
+                    public let persistentModelID: PersistentIdentifier
+                    public let name: Snapshotted<String>
+                    public let friends: Snapshotted<[Person]>
+                    public var id: PersistentIdentifier {
+                        persistentModelID
+                    }
+                    public init(persistentModelID: PersistentIdentifier, name: Snapshotted<String>, friends: Snapshotted<[Person]>) {
+                        self.persistentModelID = persistentModelID
+                        self.name = name
+                        self.friends = friends
+                    }
+                }
+
+                public var snapshot: Snapshot {
+                    Snapshot(
+                        persistentModelID: persistentModelID,
+                        name: name.snapshotValue,
+                        friends: friends.snapshotValue
+                    )
+                }
+            }
+
+            extension Person: SnapshotConvertible {
+            }
+            """
+        )
+    }
+
     @Test func rejectsNonClass() {
         assertExpansion(
             """

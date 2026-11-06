@@ -11,18 +11,34 @@ extension SnapshotableMacro: MemberMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        guard declaration.is(ClassDeclSyntax.self) else {
+        guard let classDecl = declaration.as(ClassDeclSyntax.self) else {
             context.diagnose(Diagnostic(node: node, message: Message.notAClass))
             return []
         }
 
+        let access = accessModifier(of: classDecl)
         let properties = storedProperties(of: declaration, in: context)
         let hasStoredID = properties.contains { $0.name == "id" }
 
-        var members: [String] = ["let persistentModelID: PersistentIdentifier"]
-        members += properties.map { "let \($0.name): Snapshotted<\($0.type)>" }
+        var members: [String] = ["\(access)let persistentModelID: PersistentIdentifier"]
+        members += properties.map { "\(access)let \($0.name): Snapshotted<\($0.type)>" }
         if !hasStoredID {
-            members.append("var id: PersistentIdentifier { persistentModelID }")
+            members.append("\(access)var id: PersistentIdentifier { persistentModelID }")
+        }
+        // A struct's memberwise initializer is never more than internal, so a snapshot that is
+        // visible outside its module gets an explicit one at the same level.
+        if !access.isEmpty {
+            var parameters = ["persistentModelID: PersistentIdentifier"]
+            parameters += properties.map { "\($0.name): Snapshotted<\($0.type)>" }
+            var assignments = ["self.persistentModelID = persistentModelID"]
+            assignments += properties.map { "self.\($0.name) = \($0.name)" }
+            members.append(
+                """
+                \(access)init(\(parameters.joined(separator: ", "))) {
+                        \(assignments.joined(separator: "\n        "))
+                    }
+                """
+            )
         }
 
         var arguments = ["persistentModelID: persistentModelID"]
@@ -30,12 +46,12 @@ extension SnapshotableMacro: MemberMacro {
 
         return [
             """
-            struct Snapshot: Identifiable, Hashable, Sendable {
+            \(raw: access)struct Snapshot: Identifiable, Hashable, Sendable {
                 \(raw: members.joined(separator: "\n    "))
             }
             """,
             """
-            var snapshot: Snapshot {
+            \(raw: access)var snapshot: Snapshot {
                 Snapshot(
                     \(raw: arguments.joined(separator: ",\n        "))
                 )
@@ -85,6 +101,20 @@ private extension SnapshotableMacro {
             }
             return StoredProperty(name: pattern.identifier.text, type: type.trimmedDescription)
         }
+    }
+
+    /// The modifier the generated declarations carry so they are as visible as the model: `public`
+    /// for a public or open class, `package` for a package one, and nothing otherwise. A private or
+    /// file-private class keeps internal members, which its own scope already confines.
+    static func accessModifier(of classDecl: ClassDeclSyntax) -> String {
+        for modifier in classDecl.modifiers {
+            switch modifier.name.tokenKind {
+            case .keyword(.public), .keyword(.open): return "public "
+            case .keyword(.package): return "package "
+            default: continue
+            }
+        }
+        return ""
     }
 
     static func isStored(_ variable: VariableDeclSyntax) -> Bool {

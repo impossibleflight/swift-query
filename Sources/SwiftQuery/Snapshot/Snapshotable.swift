@@ -31,6 +31,11 @@ import SwiftData
 /// identifiers, never as objects, and the snapshot can cross actor boundaries. If the model has
 /// a stored `id` property, the snapshot uses it for `Identifiable` instead of the persistent one.
 ///
+/// The snapshot, its properties and the `snapshot` property are as visible as the model: `public`
+/// for a public or open class, `package` for a package one, internal otherwise. A public or
+/// package snapshot also gets an initializer at that level, since a struct's memberwise
+/// initializer is never more than internal.
+///
 /// Properties marked `@Transient`, computed properties and static members are left out. Each
 /// stored property needs an explicit type annotation, and each stored type must be
 /// ``SnapshotConvertible``. The model itself is made `SnapshotConvertible`, so other snapshots can

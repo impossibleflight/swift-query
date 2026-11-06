@@ -342,7 +342,8 @@ snapshot.author           // PersistentIdentifier?
 Every stored property is mirrored. Related models arrive as `PersistentIdentifier`s rather than
 objects, so a snapshot can leave the context safely. Properties marked `@Transient`, computed
 properties and static members are left out. If the model has a stored `id`, the snapshot uses it
-for `Identifiable`; otherwise it uses the persistent identifier.
+for `Identifiable`; otherwise it uses the persistent identifier. The snapshot is as visible as
+the model, so a public model gets a public snapshot with a public initializer.
 
 The mapping from a stored type to its snapshot type is the `SnapshotConvertible` protocol, which
 the library provides for the standard value types, for optionals and arrays of convertible

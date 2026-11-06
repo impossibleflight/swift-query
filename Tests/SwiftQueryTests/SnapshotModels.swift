@@ -44,3 +44,15 @@ final class Book {
         self.author = author
     }
 }
+
+/// A public model, so the macro's public expansion is compiled and not only compared as text.
+@Snapshotable
+@Model public final class Publisher {
+    public var name: String
+    public var founded: Int?
+
+    public init(name: String, founded: Int? = nil) {
+        self.name = name
+        self.founded = founded
+    }
+}
