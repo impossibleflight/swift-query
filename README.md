@@ -406,6 +406,38 @@ let rows = try await container.createQueryActor().perform { _ in
 }
 ```
 
+#### Declaring rows with `@Selection`
+
+Writing the initializer that fills a row from a model is repetitive, so `@Selection` writes it.
+Declare the properties the row wants, by the names the model uses, and name the model:
+
+```swift
+@Selection(of: Book.self)
+struct BookRow {
+    let persistentModelID: PersistentIdentifier
+    let title: String
+    let genre: Genre
+    let author: PersistentIdentifier?
+}
+```
+
+This adds `init(_ model: Book)`, which assigns each property from the model's property of the same
+name through `SnapshotConvertible`: values arrive as themselves and related models as their
+`PersistentIdentifier`. It also makes the row `Hashable` and `Sendable`, and `Identifiable` by
+`persistentModelID`, or by a stored `id` if the row declares one. A property with an initial
+value belongs to the row alone and is left out of the initializer.
+
+The row then stands in for the closure:
+
+```swift
+let rows = try Book.sortBy(\.title).select(BookRow.init).results(in: container)
+```
+
+Because the properties are matched by name and resolved by the compiler, a row can select
+properties a model inherits from its parents, and a wrong name or type is a compile error on the
+row. The initializer is internal unless `initializer: .public` is passed, so a public row can be
+declared for an internal model and built in the module that owns the models.
+
 ### Observable Queries
 
 Often in the context of view models or views we'd like to passively observe a Query and be notified of changes. SwiftQuery provides property wrappers that automatically update when the underlying data changes. These wrappers use Swift's `@Observable` framework and notify observers whenever the persistent store changes, even if that happens as a result of something like iCloud sync.

@@ -16,7 +16,7 @@ extension SnapshotableMacro: MemberMacro {
             return []
         }
 
-        let access = accessModifier(of: classDecl)
+        let access = StoredProperties.accessModifier(of: classDecl.modifiers)
         let properties = storedProperties(of: declaration, in: context)
         let hasStoredID = properties.contains { $0.name == "id" }
 
@@ -84,71 +84,23 @@ private extension SnapshotableMacro {
         of declaration: some DeclGroupSyntax,
         in context: some MacroExpansionContext
     ) -> [StoredProperty] {
-        declaration.memberBlock.members.compactMap { member in
-            guard
-                let variable = member.decl.as(VariableDeclSyntax.self),
-                isStored(variable)
-            else { return nil }
-
-            guard variable.bindings.count == 1, let binding = variable.bindings.first else {
-                context.diagnose(Diagnostic(node: variable, message: Message.multipleBindings))
+        StoredProperties.of(declaration, in: context, macro: "Snapshotable").compactMap { property in
+            guard let type = property.type else {
+                context.diagnose(Diagnostic(node: property.binding, message: Message.missingType(property.name)))
                 return nil
             }
-            guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { return nil }
-            guard let type = binding.typeAnnotation?.type else {
-                context.diagnose(Diagnostic(node: binding, message: Message.missingType(pattern.identifier.text)))
-                return nil
-            }
-            return StoredProperty(name: pattern.identifier.text, type: type.trimmedDescription)
-        }
-    }
-
-    /// The modifier the generated declarations carry so they are as visible as the model: `public`
-    /// for a public or open class, `package` for a package one, and nothing otherwise. A private or
-    /// file-private class keeps internal members, which its own scope already confines.
-    static func accessModifier(of classDecl: ClassDeclSyntax) -> String {
-        for modifier in classDecl.modifiers {
-            switch modifier.name.tokenKind {
-            case .keyword(.public), .keyword(.open): return "public "
-            case .keyword(.package): return "package "
-            default: continue
-            }
-        }
-        return ""
-    }
-
-    static func isStored(_ variable: VariableDeclSyntax) -> Bool {
-        let isStatic = variable.modifiers.contains { $0.name.tokenKind == .keyword(.static) || $0.name.tokenKind == .keyword(.class) }
-        let isTransient = variable.attributes.contains { attribute in
-            attribute.as(AttributeSyntax.self)?.attributeName.trimmedDescription == "Transient"
-        }
-        guard !isStatic, !isTransient else { return false }
-
-        guard let accessors = variable.bindings.first?.accessorBlock?.accessors else { return true }
-        switch accessors {
-        case .getter:
-            return false
-        case .accessors(let list):
-            return list.allSatisfy { accessor in
-                switch accessor.accessorSpecifier.tokenKind {
-                case .keyword(.willSet), .keyword(.didSet): true
-                default: false
-                }
-            }
+            return StoredProperty(name: property.name, type: type)
         }
     }
 
     enum Message: DiagnosticMessage {
         case notAClass
-        case multipleBindings
         case missingType(String)
 
         var message: String {
             switch self {
             case .notAClass:
                 "@Snapshotable can only be applied to a class"
-            case .multipleBindings:
-                "@Snapshotable needs one property per declaration"
             case .missingType(let name):
                 "@Snapshotable needs an explicit type for '\(name)'"
             }
@@ -157,7 +109,6 @@ private extension SnapshotableMacro {
         var diagnosticID: MessageID {
             switch self {
             case .notAClass: MessageID(domain: "SwiftQueryMacros", id: "notAClass")
-            case .multipleBindings: MessageID(domain: "SwiftQueryMacros", id: "multipleBindings")
             case .missingType: MessageID(domain: "SwiftQueryMacros", id: "missingType")
             }
         }
