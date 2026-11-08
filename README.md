@@ -555,6 +555,6 @@ swift-query is licensed under the MIT license. See [LICENSE](LICENSE)
 
 The query language is inspired by [QueryKit](https://github.com/QueryKit/QueryKit).
 
-Rows, `@Selection` and the observable fetch wrappers follow the shape of
-[SQLiteData](https://github.com/pointfreeco/sqlite-data) by Point-Free, whose `@Selection` and
-`@FetchAll` showed how a query can land directly in a value type a screen declares.
+Rows and `@Selection` follow the shape of [SQLiteData](https://github.com/pointfreeco/sqlite-data)
+by Point-Free, whose `@Selection` showed how a query can land directly in a value type a screen
+declares.
