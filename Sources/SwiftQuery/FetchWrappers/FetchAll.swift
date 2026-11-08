@@ -16,9 +16,9 @@ import SwiftData
 /// var adults: [Person]
 ///
 /// @FetchAll(Book.sortBy(\.title).joining(\.author).select { book, author in
-///     BookRow(book: book.snapshot, authorName: author?.name)
+///     BookWithAuthor(book: BookRow(book), authorName: author?.name)
 /// })
-/// var books: [BookRow]
+/// var books: [BookWithAuthor]
 /// ```
 @MainActor
 @propertyWrapper

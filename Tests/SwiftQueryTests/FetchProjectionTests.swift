@@ -110,7 +110,7 @@ struct FetchProjectionTests {
         try await withDependencies {
             $0.modelContainer = container
         } operation: {
-            @FetchFirst(Author.sortBy(\.name).select(\.snapshot)) var first: Author.Snapshot?
+            @FetchFirst(Author.sortBy(\.name).select(AuthorSelection.init)) var first: AuthorSelection?
             try await settle()
             #expect(first == nil)
 

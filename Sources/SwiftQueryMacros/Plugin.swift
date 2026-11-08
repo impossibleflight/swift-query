@@ -5,6 +5,5 @@ import SwiftSyntaxMacros
 struct SwiftQueryMacrosPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         SelectionMacro.self,
-        SnapshotableMacro.self,
     ]
 }

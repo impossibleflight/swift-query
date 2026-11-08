@@ -8,7 +8,6 @@ enum Genre: String, Codable {
 
 extension Genre: SnapshotConvertible {}
 
-@Snapshotable
 @Model
 final class Author {
     var name: String
@@ -27,7 +26,6 @@ final class Author {
     }
 }
 
-@Snapshotable
 @Model
 final class Book {
     @Attribute(.unique) var id: UUID
@@ -45,8 +43,7 @@ final class Book {
     }
 }
 
-/// A public model, so the macro's public expansion is compiled and not only compared as text.
-@Snapshotable
+/// A public model, so a public row with a public initializer can be compiled against it.
 @Model public final class Publisher {
     public var name: String
     public var founded: Int?

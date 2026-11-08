@@ -5,14 +5,12 @@ import SwiftSyntaxMacros
 /// A stored property of a type a macro is attached to, as far as its syntax reveals.
 struct StoredProperty {
     let name: String
-    /// The declared type, or `nil` when the declaration has no annotation.
-    let type: String?
     let hasInitialValue: Bool
     /// The binding, for diagnostics.
     let binding: PatternBindingSyntax
 }
 
-/// The stored-property reading shared by the macros: instance properties that are neither
+/// The stored-property reading of a declaration: instance properties that are neither
 /// computed nor `@Transient`, one binding per declaration.
 enum StoredProperties {
     static func of(
@@ -33,7 +31,6 @@ enum StoredProperties {
             guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { return nil }
             return StoredProperty(
                 name: pattern.identifier.text,
-                type: binding.typeAnnotation?.type.trimmedDescription,
                 hasInitialValue: binding.initializer != nil,
                 binding: binding
             )

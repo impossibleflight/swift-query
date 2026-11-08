@@ -40,10 +40,10 @@ struct JoinTests {
         #expect(titles == ["Anonymous", "Dispossessed", "Earthsea", "Kindred"])
     }
 
-    @Test func select_snapshots() throws {
-        let snapshots = try Author.sortBy(\.name).select(\.snapshot).results(in: container)
-        #expect(snapshots.map(\.name) == ["Octavia", "Ursula"])
-        #expect(snapshots.allSatisfy { !$0.books.isEmpty })
+    @Test func select_rows() throws {
+        let rows = try Author.sortBy(\.name).select(AuthorSelection.init).results(in: container)
+        #expect(rows.map(\.name) == ["Octavia", "Ursula"])
+        #expect(rows.allSatisfy { !$0.books.isEmpty })
     }
 
     @Test func joining_toOneOptional() throws {

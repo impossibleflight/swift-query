@@ -14,7 +14,7 @@ import SwiftData
 ///     .sortBy(\.title)
 ///     .joining(\.author)
 ///     .select { book, author in
-///         BookRow(book: book.snapshot, authorName: author?.name)
+///         BookWithAuthor(book: BookRow(book), authorName: author?.name)
 ///     }
 ///     .results(in: container)
 /// ```

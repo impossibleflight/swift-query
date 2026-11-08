@@ -15,8 +15,8 @@ import SwiftData
 /// @FetchFirst(Person.include(#Predicate { $0.name == "Jack" }))
 /// var jack: Person?
 ///
-/// @FetchFirst(Author.include(#Predicate { $0.name == "Ursula" }).select(\.snapshot))
-/// var ursula: Author.Snapshot?
+/// @FetchFirst(Author.include(#Predicate { $0.name == "Ursula" }).select(AuthorRow.init))
+/// var ursula: AuthorRow?
 /// ```
 @MainActor
 @propertyWrapper
