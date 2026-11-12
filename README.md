@@ -505,7 +505,7 @@ be noticed.
 The same observation is available as an async sequence, for code that already runs inside a model
 actor and wants to act on the rows rather than display them. `changes()` on a projection delivers
 the rows now and again after every change to a type the projection reads, performed on the
-calling actor. Each call is independent, with its own view of the persistent history, so any
+calling actor. The first fetch starts when `changes()` is called, not when iteration begins. Each call is independent, with its own view of the persistent history, so any
 number of sequences can be live at once:
 
 ```swift

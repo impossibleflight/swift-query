@@ -6,7 +6,7 @@ public extension Projection {
     /// The projection's rows now, and again after every change to a model type it reads.
     ///
     /// The sequence is performed on the model actor that calls it. Its first element is the rows
-    /// as they stand, fetched when iteration begins. From then on every `NSPersistentStoreRemoteChange`
+    /// as they stand, fetched as soon as this is called. From then on every `NSPersistentStoreRemoteChange`
     /// is answered by reading the persistent history written since the last read, and if a
     /// transaction touched the projection's model type or a type it joins, the rows are fetched
     /// again and delivered as the next element. Changes to other types produce nothing. A failed
