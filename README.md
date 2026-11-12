@@ -500,6 +500,29 @@ local saves, other processes and sync are all covered, and a save to an unrelate
 costs nothing. If the `select` closure reads a relationship, join it, or changes to it will not
 be noticed.
 
+#### Observing rows on your own actor
+
+The same observation is available as an async sequence, for code that already runs inside a model
+actor and wants to act on the rows rather than display them. `changes()` on a projection delivers
+the rows now and again after every change to a type the projection reads, performed on the
+calling actor. Each call is independent, with its own view of the persistent history, so any
+number of sequences can be live at once:
+
+```swift
+@ModelActor
+actor Library {
+    func watchUnread() async throws {
+        for try await rows in Book.include(#Predicate { !$0.isRead }).select(BookRow.init).changes() {
+            // rows is [BookRow], fetched on this actor
+        }
+    }
+}
+```
+
+Unlike the wrappers, which log a failed fetch and keep their last value, the sequence throws it,
+so a caller deciding state on the rows sees the failure. To take the current rows once, read the
+first element and stop iterating; ending the iteration ends the observation.
+
 #### Dependency Injection
 
 All fetch wrappers use [Swift Dependencies](https://github.com/pointfreeco/swift-dependencies) to access the model container. In your app setup:
