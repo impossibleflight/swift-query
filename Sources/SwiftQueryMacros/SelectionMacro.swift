@@ -23,7 +23,15 @@ extension SelectionMacro: MemberMacro {
         let properties = StoredProperties.of(structDecl, in: context, macro: "Selection")
         // A property with an initial value belongs to the row alone, so the initializer leaves it be.
         let selected = properties.filter { !$0.hasInitialValue }
-        let assignments = selected.map { "self.\($0.name) = model.\($0.name).snapshotValue" }
+        // The model's own `id` is its untyped identifier, so a row's typed `id` is filled from the
+        // typed one instead; any other property is matched by name.
+        let assignments = selected.map { property in
+            if property.name == "id", property.typeName?.hasPrefix("ModelID<") == true {
+                "self.id = model.modelID"
+            } else {
+                "self.\(property.name) = model.\(property.name).snapshotValue"
+            }
+        }
 
         var members: [DeclSyntax] = [
             """

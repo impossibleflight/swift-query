@@ -87,6 +87,17 @@ struct PersistentModelFetchTests {
         #expect(try Person.count(in: modelContainer) == 0)
         #expect(try Person.isEmpty(in: modelContainer) == true)
     }
+
+    @Test func find() throws {
+        let first = try Person.include(#Predicate { $0.name == "Jill" }).first(in: modelContainer)
+        let jill = try #require(first)
+
+        let typed = try Person.find(jill.modelID, in: modelContainer)
+        let untyped = try Person.find(jill.persistentModelID, in: modelContainer)
+        #expect(typed === jill)
+        #expect(untyped === jill)
+    }
+
 }
 
 struct PersistentModelConcurrentFetchTests {
@@ -185,6 +196,18 @@ struct PersistentModelConcurrentFetchTests {
             
             #expect(try Person.count() == 0)
             #expect(try Person.isEmpty() == true)
+        }
+    }
+
+    @Test func find() async throws {
+        try await modelContainer.createQueryActor().perform { _ in
+            let first = try Person.include(#Predicate { $0.name == "Jill" }).first()
+            let jill = try #require(first)
+
+            let typed = try Person.find(jill.modelID)
+            let untyped = try Person.find(jill.persistentModelID)
+            #expect(typed === jill)
+            #expect(untyped === jill)
         }
     }
 }

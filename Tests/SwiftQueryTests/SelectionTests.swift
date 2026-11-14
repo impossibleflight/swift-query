@@ -27,13 +27,13 @@ struct SelectionTests {
         let row = AuthorSelection(author)
         #expect(row.name == "Ursula")
         #expect(row.born == born)
-        #expect(row.books == [book.persistentModelID])
-        #expect(row.id == author.persistentModelID)
+        #expect(row.books == [book.modelID])
+        #expect(row.id == author.modelID)
 
         let bookRow = BookSelection(book)
         #expect(bookRow.id == book.id)
         #expect(bookRow.genre == .fiction)
-        #expect(bookRow.author == author.persistentModelID)
+        #expect(bookRow.author == author.modelID)
         #expect(bookRow.isRead == false)
     }
 

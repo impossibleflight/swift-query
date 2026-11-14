@@ -191,4 +191,30 @@ struct SelectionMacroTests {
             ]
         )
     }
+
+    @Test func typedIDIsFilledFromTheModelsTypedIdentifier() {
+        assertExpansion(
+            """
+            @Selection(of: Book.self)
+            struct BookRow {
+                let id: ModelID<Book>
+                let author: ModelID<Author>?
+            }
+            """,
+            expanded: """
+            struct BookRow {
+                let id: ModelID<Book>
+                let author: ModelID<Author>?
+
+                init(_ model: Book) {
+                    self.id = model.modelID
+                    self.author = model.author.snapshotValue
+                }
+            }
+
+            extension BookRow: Identifiable, Hashable, Sendable {
+            }
+            """
+        )
+    }
 }

@@ -6,6 +6,8 @@ import SwiftSyntaxMacros
 struct StoredProperty {
     let name: String
     let hasInitialValue: Bool
+    /// The declared type as written, or `nil` when the type is inferred.
+    let typeName: String?
     /// The binding, for diagnostics.
     let binding: PatternBindingSyntax
 }
@@ -32,6 +34,7 @@ enum StoredProperties {
             return StoredProperty(
                 name: pattern.identifier.text,
                 hasInitialValue: binding.initializer != nil,
+                typeName: binding.typeAnnotation?.type.trimmedDescription,
                 binding: binding
             )
         }

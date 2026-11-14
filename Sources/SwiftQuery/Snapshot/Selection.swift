@@ -18,25 +18,26 @@ public enum SelectionInitializer {
 /// ```swift
 /// @Selection(of: Book.self)
 /// struct BookRow {
-///     let persistentModelID: PersistentIdentifier
+///     let id: ModelID<Book>
 ///     let title: String
-///     let author: PersistentIdentifier?
+///     let author: ModelID<Author>?
 /// }
 /// ```
 ///
 /// This adds `init(_ model: Book)`, which assigns `model.title.snapshotValue` to `title` and so on
 /// for every stored property without an initial value. ``SnapshotConvertible`` does the mapping:
-/// a value type arrives as itself and a related model as its `PersistentIdentifier`, so a row can
-/// leave the context and cross actors. A property whose type does not match is a compile error at
+/// a value type arrives as itself and a related model as its ``ModelID``, so a row can leave the
+/// context and cross actors. A property whose type does not match is a compile error at
 /// the row, and so is a name the model does not have.
 ///
 /// Properties are matched by name, wherever the model declares them, so a row of a subclass can
 /// select properties inherited from its parents. A property with an initial value belongs to the
 /// row alone and is left out of the initializer.
 ///
-/// When the row has a stored `persistentModelID` and no stored `id`, it is `Identifiable` by the
-/// persistent identifier. With a stored `id`, that is used instead. With neither, the row is only
-/// `Hashable` and `Sendable`.
+/// A stored `id` declared as `ModelID<Book>` is the model's typed identifier, filled from
+/// `model.modelID`, since the model's own `id` is untyped; any other stored `id` is matched by
+/// name like the rest. A row with a stored `persistentModelID` and no `id` is `Identifiable` by
+/// the untyped identifier. With neither, the row is only `Hashable` and `Sendable`.
 ///
 /// The initializer is internal unless `initializer:` says otherwise, so a public row can be
 /// declared for an internal model and built where the model is visible. Pass `.public` when the

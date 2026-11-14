@@ -4,10 +4,10 @@ import SwiftQuery
 
 @Selection(of: Author.self)
 struct AuthorSelection {
-    let persistentModelID: PersistentIdentifier
+    let id: ModelID<Author>
     let name: String
     let born: Date?
-    let books: [PersistentIdentifier]
+    let books: [ModelID<Book>]
 }
 
 @Selection(of: Book.self)
@@ -15,7 +15,7 @@ struct BookSelection {
     let id: UUID
     let title: String
     let genre: Genre
-    let author: PersistentIdentifier?
+    let author: ModelID<Author>?
     var isRead = false
 }
 

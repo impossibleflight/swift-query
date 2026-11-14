@@ -575,6 +575,33 @@ struct ConcurrentFetchTests {
             .results(in: modelContainer)
         return jacks.reduce(0) { $0 + $1.age }
     }
+
+    @Test func find_returnsTheObjectWithThatIdentifier() async throws {
+        try await modelContainer.createQueryActor().perform { _ in
+            let first = try Person.include(#Predicate { $0.name == "Karina" }).first()
+            let karina = try #require(first)
+
+            let found = try Query<Person>().find(karina.modelID)
+            #expect(found === karina)
+
+            let excluded = try Query<Person>().include(#Predicate { $0.age < 18 }).find(karina.modelID)
+            #expect(excluded == nil)
+        }
+    }
+
+    @Test func find_isNilOnceTheObjectIsGone() async throws {
+        try await modelContainer.createQueryActor().perform { actor in
+            let first = try Person.include(#Predicate { $0.name == "Karina" }).first()
+            let karina = try #require(first)
+            let id = karina.modelID
+            actor.modelContext.delete(karina)
+            try actor.modelContext.save()
+
+            let found = try Query<Person>().find(id)
+            #expect(found == nil)
+        }
+    }
+
 }
 
 @ModelActor
@@ -601,4 +628,3 @@ extension ModelActor {
         modelContext.rollback()
     }
 }
-

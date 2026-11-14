@@ -4,8 +4,8 @@ import SwiftData
 /// A type whose values can be carried out of a model context inside a row.
 ///
 /// Stored value types are their own snapshot value, and optionals and arrays map their contents. A
-/// `PersistentModel` is represented by its `PersistentIdentifier`, never by a copy, so a row never
-/// holds a model; that mapping is an extension on `PersistentModel` rather than a conformance. ``Selection(of:initializer:)`` assigns every property of a row through
+/// `PersistentModel` is represented by its ``ModelID``, never by a copy, so a row never holds a
+/// model; that mapping is an extension on `PersistentModel` rather than a conformance. ``Selection(of:initializer:)`` assigns every property of a row through
 /// ``snapshotValue``, which is what makes a mismatched type a compile error at the row.
 ///
 /// Conform your own stored value types with an empty extension; any `Hashable & Sendable` type
@@ -31,18 +31,18 @@ public extension SnapshotConvertible where Self: Hashable & Sendable, SnapshotVa
 // every optional or array of one has a snapshotValue of its own, so a row's generated initializer
 // reads a relationship the same way it reads a value.
 public extension PersistentModel {
-    /// The value a row stores for a related model: its identifier, never the model.
-    var snapshotValue: PersistentIdentifier { persistentModelID }
+    /// The value a row stores for a related model: its typed identifier, never the model.
+    var snapshotValue: ModelID<Self> { modelID }
 }
 
 public extension Optional where Wrapped: PersistentModel {
     /// The value a row stores for an optional related model.
-    var snapshotValue: PersistentIdentifier? { self?.persistentModelID }
+    var snapshotValue: ModelID<Wrapped>? { self?.modelID }
 }
 
 public extension Array where Element: PersistentModel {
     /// The value a row stores for a to-many relationship.
-    var snapshotValue: [PersistentIdentifier] { map(\.persistentModelID) }
+    var snapshotValue: [ModelID<Element>] { map(\.modelID) }
 }
 
 extension Optional: SnapshotConvertible where Wrapped: SnapshotConvertible {
