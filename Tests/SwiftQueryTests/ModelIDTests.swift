@@ -76,4 +76,18 @@ struct ModelIDTests {
             try JSONDecoder().decode(ModelID<Author>.self, from: data)
         }
     }
+
+    @available(macOS 26, iOS 26, watchOS 26, *)
+    @Test func aSubclassIdentifierConvertsToItsParentsAndFindsTheModel() throws {
+        let sessions = try ModelContainer(for: Session.self, Visit.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let visit = Visit(startedAt: Date(), mood: 3)
+        sessions.mainContext.insert(visit)
+        try sessions.mainContext.save()
+
+        let asSession = ModelID<Session>(visit.modelID)
+        #expect(asSession.persistentIdentifier == visit.persistentModelID)
+
+        let found = try Session.find(asSession, in: sessions)
+        #expect(found === visit)
+    }
 }

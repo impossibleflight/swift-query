@@ -30,6 +30,19 @@ public struct ModelID<Model: PersistentModel>: Hashable, Sendable {
         guard persistentIdentifier.entityName == Schema.entityName(for: Model.self) else { return nil }
         self.persistentIdentifier = persistentIdentifier
     }
+
+    /// The identifier of a model of a subclass, as an identifier of this class.
+    ///
+    /// A fetch of the parent class returns its subclasses' models too, so a `ModelID<Session>`
+    /// made from a `ModelID<Visit>` finds the visit. Swift cannot state "a subclass of `Model`"
+    /// as a generic constraint, so the inheritance is checked when the conversion runs; it
+    /// depends only on the two types, never on the data, so a wrong pair fails the first time
+    /// that line runs. The untyped forms, ``init(_:)-(PersistentIdentifier)`` and decoding,
+    /// compare the entity name exactly and have no way to know the hierarchy.
+    public init<Subclass: PersistentModel>(_ subclassID: ModelID<Subclass>) {
+        precondition(Subclass.self is Model.Type, "\(Subclass.self) is not a subclass of \(Model.self)")
+        persistentIdentifier = subclassID.persistentIdentifier
+    }
 }
 
 extension ModelID: Codable {

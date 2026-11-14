@@ -234,7 +234,9 @@ returns a stranger, and `ModelContext.model(for:)` on a deleted record's identif
 object that crashes on first use. `find` gives `nil` for a record that is gone, an identifier of
 another kind, and an identifier from another container, and never another record. A typed
 identifier can also be made from an untyped one, `ModelID<Author>(identifier)`, which is `nil`
-when the identifier names another kind of model; decoding one checks the same way.
+when the identifier names another kind of model; decoding one checks the same way. Where models
+inherit, `ModelID<Session>(visitID)` carries a subclass's identifier as its parent's, and a fetch of
+the parent finds the subclass's model.
 
 #### Fetching all results
 
