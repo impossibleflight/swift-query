@@ -13,7 +13,7 @@ import SwiftData
 /// let id: ModelID<Author> = author.modelID
 /// let found = try Author.find(id, in: container)   // Author?
 /// ```
-public struct ModelID<Model: PersistentModel>: Hashable, Sendable, Codable {
+public struct ModelID<Model: PersistentModel>: Hashable, Sendable {
     /// The untyped identifier this names, for APIs that take one.
     public let persistentIdentifier: PersistentIdentifier
 
@@ -29,6 +29,25 @@ public struct ModelID<Model: PersistentModel>: Hashable, Sendable, Codable {
     public init?(_ persistentIdentifier: PersistentIdentifier) {
         guard persistentIdentifier.entityName == Schema.entityName(for: Model.self) else { return nil }
         self.persistentIdentifier = persistentIdentifier
+    }
+}
+
+extension ModelID: Codable {
+    /// Decodes the identifier and refuses one that names another kind of model, as
+    /// ``init(_:)-(PersistentIdentifier)`` does, so decoding is not a way around the type.
+    public init(from decoder: any Decoder) throws {
+        let identifier = try PersistentIdentifier(from: decoder)
+        guard let typed = ModelID(identifier) else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath,
+                debugDescription: "\(identifier.entityName) is not a \(Schema.entityName(for: Model.self))"
+            ))
+        }
+        self = typed
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        try persistentIdentifier.encode(to: encoder)
     }
 }
 

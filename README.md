@@ -94,7 +94,7 @@ These exist because SwiftData translates a comparison on an identifier in a pred
 on the row number alone, with no check of the model type or the store. A hand-written
 `#Predicate { $0.author?.persistentModelID == someID }` given a `Publisher`'s identifier matches
 whichever author sits in that row. With a `ModelID<Author>` the kind is checked by the compiler.
-Identifiers from another container are still matched by row; keep to one container per query.
+An identifier from another container matches nothing, as SwiftData does check the store.
 
 #### Creating compound refinements
 
@@ -232,7 +232,9 @@ for, because SwiftData's own lookups cannot be trusted with an identifier of unk
 predicate on an identifier matches by row number alone, so another kind of model's identifier
 returns a stranger, and `ModelContext.model(for:)` on a deleted record's identifier returns an
 object that crashes on first use. `find` gives `nil` for a record that is gone, an identifier of
-another kind, and an identifier from another container, and never another record.
+another kind, and an identifier from another container, and never another record. A typed
+identifier can also be made from an untyped one, `ModelID<Author>(identifier)`, which is `nil`
+when the identifier names another kind of model; decoding one checks the same way.
 
 #### Fetching all results
 

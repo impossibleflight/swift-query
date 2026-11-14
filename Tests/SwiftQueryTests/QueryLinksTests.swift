@@ -47,4 +47,14 @@ struct QueryLinksTests {
         let authors = try Author.include(\.books, contains: kindred.modelID).results(in: container)
         #expect(authors.map(\.name) == ["Octavia"])
     }
+
+    @Test func include_is_findsNothingForAnotherContainersIdentifier() throws {
+        let other = try ModelContainer(for: Author.self, Book.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let stranger = Author(name: "Stranger")
+        other.mainContext.insert(stranger)
+        try other.mainContext.save()
+
+        let books = try Book.include(\.author, is: stranger.modelID).results(in: container)
+        #expect(books.isEmpty)
+    }
 }

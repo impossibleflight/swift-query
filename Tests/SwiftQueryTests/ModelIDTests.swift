@@ -66,4 +66,14 @@ struct ModelIDTests {
         let found = try Author.find(linked, in: container)
         #expect(found === author)
     }
+
+    @Test func decodesOnlyAnIdentifierOfItsOwnKind() throws {
+        let data = try JSONEncoder().encode(book.modelID)
+
+        let decoded = try JSONDecoder().decode(ModelID<Book>.self, from: data)
+        #expect(decoded == book.modelID)
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ModelID<Author>.self, from: data)
+        }
+    }
 }

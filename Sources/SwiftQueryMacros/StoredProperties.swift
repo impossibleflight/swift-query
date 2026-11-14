@@ -6,8 +6,8 @@ import SwiftSyntaxMacros
 struct StoredProperty {
     let name: String
     let hasInitialValue: Bool
-    /// The declared type as written, or `nil` when the type is inferred.
-    let typeName: String?
+    /// The declared type, or `nil` when it is inferred.
+    let type: TypeSyntax?
     /// The binding, for diagnostics.
     let binding: PatternBindingSyntax
 }
@@ -34,10 +34,23 @@ enum StoredProperties {
             return StoredProperty(
                 name: pattern.identifier.text,
                 hasInitialValue: binding.initializer != nil,
-                typeName: binding.typeAnnotation?.type.trimmedDescription,
+                type: binding.typeAnnotation?.type,
                 binding: binding
             )
         }
+    }
+
+    /// Whether `type` is spelled `ModelID<…>`, with or without a module prefix. The macro cannot
+    /// resolve types, so the spelling is what it has.
+    static func isModelID(_ type: TypeSyntax?) -> Bool {
+        guard let type else { return false }
+        if let identifier = type.as(IdentifierTypeSyntax.self) {
+            return identifier.name.text == "ModelID" && identifier.genericArgumentClause != nil
+        }
+        if let member = type.as(MemberTypeSyntax.self) {
+            return member.name.text == "ModelID" && member.genericArgumentClause != nil
+        }
+        return false
     }
 
     static func isStored(_ variable: VariableDeclSyntax) -> Bool {

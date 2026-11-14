@@ -26,7 +26,7 @@ extension SelectionMacro: MemberMacro {
         // The model's own `id` is its untyped identifier, so a row's typed `id` is filled from the
         // typed one instead; any other property is matched by name.
         let assignments = selected.map { property in
-            if property.name == "id", property.typeName?.hasPrefix("ModelID<") == true {
+            if property.name == "id", StoredProperties.isModelID(property.type) {
                 "self.id = model.modelID"
             } else {
                 "self.\(property.name) = model.\(property.name).snapshotValue"

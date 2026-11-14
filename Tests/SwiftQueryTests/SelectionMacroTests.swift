@@ -217,4 +217,27 @@ struct SelectionMacroTests {
             """
         )
     }
+
+    @Test func typedIDMayBeModuleQualified() {
+        assertExpansion(
+            """
+            @Selection(of: Book.self)
+            struct BookRow {
+                let id: SwiftQuery.ModelID<Book>
+            }
+            """,
+            expanded: """
+            struct BookRow {
+                let id: SwiftQuery.ModelID<Book>
+
+                init(_ model: Book) {
+                    self.id = model.modelID
+                }
+            }
+
+            extension BookRow: Identifiable, Hashable, Sendable {
+            }
+            """
+        )
+    }
 }
