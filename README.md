@@ -81,6 +81,21 @@ Person.include(#Predicate { $0.name == "Jack" })
 Person.exclude(#Predicate { $0.age > 25 })
 ```
 
+#### Narrowing by a related model
+
+To narrow by a relationship, pass its key path and the typed identifier of the related model:
+
+```swift
+Book.include(\.author, is: authorID)          // author: Author?
+Author.include(\.books, contains: bookID)      // books: [Book]
+```
+
+These exist because SwiftData translates a comparison on an identifier in a predicate to a match
+on the row number alone, with no check of the model type or the store. A hand-written
+`#Predicate { $0.author?.persistentModelID == someID }` given a `Publisher`'s identifier matches
+whichever author sits in that row. With a `ModelID<Author>` the kind is checked by the compiler.
+Identifiers from another container are still matched by row; keep to one container per query.
+
 #### Creating compound refinements
 
 Multiple `include()` and `exclude()` calls create compound predicates using AND logic, allowing you to build complex filters:
@@ -204,6 +219,21 @@ let anyone = try Person.any(in: modelContainer)
 ```
 
 
+#### Fetching one object by identifier
+
+```swift
+let author = try Author.find(row.author, in: modelContainer)     // Author?
+let author = try Author.find(persistentIdentifier, in: modelContainer)
+```
+
+`find` takes a `ModelID<Author>`, or an untyped `PersistentIdentifier`, and returns the object or
+`nil`. It fetches by the identifier and then confirms the result's own identifier is the one asked
+for, because SwiftData's own lookups cannot be trusted with an identifier of unknown provenance: a
+predicate on an identifier matches by row number alone, so another kind of model's identifier
+returns a stranger, and `ModelContext.model(for:)` on a deleted record's identifier returns an
+object that crashes on first use. `find` gives `nil` for a record that is gone, an identifier of
+another kind, and an identifier from another container, and never another record.
+
 #### Fetching all results
 
 When we want to fetch all query results in memory, we can use `results`:
@@ -323,18 +353,24 @@ properties a screen needs, under the names the model uses, and name the model it
 ```swift
 @Selection(of: Book.self)
 struct BookRow {
-    let persistentModelID: PersistentIdentifier
+    let id: ModelID<Book>
     let title: String
     let genre: Genre
-    let author: PersistentIdentifier?
+    let author: ModelID<Author>?
 }
 ```
 
 `@Selection` adds `init(_ model: Book)`, which assigns each property from the model's property of
-the same name, and makes the row `Hashable` and `Sendable`, and `Identifiable` by
-`persistentModelID`, or by a stored `id` if the row declares one. Related models arrive as
-`PersistentIdentifier`s rather than objects, so a row can leave the context safely. A property
-with an initial value belongs to the row alone and is left out of the initializer.
+the same name, and makes the row `Hashable`, `Sendable` and `Identifiable`. Related models arrive
+as typed identifiers rather than objects, so a row can leave the context safely. A property with
+an initial value belongs to the row alone and is left out of the initializer.
+
+`ModelID<Book>` is a `PersistentIdentifier` that knows which model it names. A row's own `id`
+declared with that type is filled from the model's `modelID`; a row that wants the untyped
+identifier declares `persistentModelID` instead and is `Identifiable` by it. The typed form is
+what [fetching one object by identifier](#fetching-one-object-by-identifier) and
+[narrowing by a related model](#narrowing-by-a-related-model) take, and it exists because an
+untyped identifier in a predicate is a trap, described there.
 
 Because properties are matched by name and resolved by the compiler, a row can select properties
 a model inherits from its parents, a row may be more visible than its model, and a wrong name or
@@ -343,7 +379,7 @@ passed, so rows are built and queries composed in the module that owns the model
 
 The mapping from a stored type to the type a row holds is the `SnapshotConvertible` protocol: a
 value type maps to itself, and optionals and arrays map their contents. Models, and optionals and
-arrays of models, map to identifiers. The library conforms the standard value types; a custom
+arrays of models, map to typed identifiers. The library conforms the standard value types; a custom
 stored type, such as an enum, needs a one-line conformance:
 
 ```swift
