@@ -221,8 +221,9 @@ let anyone = try Person.any(in: modelContainer)
 
 #### Fetching one object by identifier
 
-Every model has a typed identifier, `modelID`, a `ModelID<Author>` that remembers which model it
-names. `find` takes one and returns the object, or `nil`:
+SwiftData gives a model `persistentModelID`, an untyped `PersistentIdentifier`. SwiftQuery adds
+`modelID`, the same identifier typed by the model it names, a `ModelID<Author>` for an author.
+`find` takes one and returns the object, or `nil`:
 
 ```swift
 let id: ModelID<Author> = author.modelID
