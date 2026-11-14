@@ -221,22 +221,28 @@ let anyone = try Person.any(in: modelContainer)
 
 #### Fetching one object by identifier
 
+Every model has a typed identifier, `modelID`, a `ModelID<Author>` that remembers which model it
+names. `find` takes one and returns the object, or `nil`:
+
 ```swift
-let author = try Author.find(row.author, in: modelContainer)     // Author?
-let author = try Author.find(persistentIdentifier, in: modelContainer)
+let id: ModelID<Author> = author.modelID
+
+let found = try Author.find(id, in: modelContainer)     // Author?
 ```
 
-`find` takes a `ModelID<Author>`, or an untyped `PersistentIdentifier`, and returns the object or
-`nil`. It fetches by the identifier and then confirms the result's own identifier is the one asked
-for, because SwiftData's own lookups cannot be trusted with an identifier of unknown provenance: a
-predicate on an identifier matches by row number alone, so another kind of model's identifier
-returns a stranger, and `ModelContext.model(for:)` on a deleted record's identifier returns an
-object that crashes on first use. `find` gives `nil` for a record that is gone, an identifier of
-another kind, and an identifier from another container, and never another record. A typed
-identifier can also be made from an untyped one, `ModelID<Author>(identifier)`, which is `nil`
-when the identifier names another kind of model; decoding one checks the same way. Where models
-inherit, `ModelID<Session>(visitID)` carries a subclass's identifier as its parent's, and a fetch of
-the parent finds the subclass's model.
+The identifier is a value, so it can be kept, passed between actors, stored in a row, or encoded,
+and the object fetched again later. An untyped `PersistentIdentifier`, from SwiftUI's `@Query` or
+anywhere else SwiftData hands one out, becomes typed through `ModelID<Author>(identifier)`, which
+is `nil` when the identifier names another kind of model; decoding checks the same way. Where
+models inherit, `ModelID<Session>(visitID)` carries a subclass's identifier as its parent's, and a
+fetch of the parent finds the subclass's model.
+
+`find` exists because SwiftData's own lookups cannot be trusted with an identifier of unknown
+provenance. A predicate comparing an identifier matches by row number alone, so another kind of
+model's identifier returns a stranger, and `ModelContext.model(for:)` on a deleted record's
+identifier returns an object that crashes on first use. `find` fetches by the identifier and then
+confirms the result's own identifier is the one asked for, so a record that is gone, an identifier
+of another kind, or one from another container gives `nil`, never another record.
 
 #### Fetching all results
 
@@ -369,12 +375,22 @@ the same name, and makes the row `Hashable`, `Sendable` and `Identifiable`. Rela
 as typed identifiers rather than objects, so a row can leave the context safely. A property with
 an initial value belongs to the row alone and is left out of the initializer.
 
-`ModelID<Book>` is a `PersistentIdentifier` that knows which model it names. A row's own `id`
-declared with that type is filled from the model's `modelID`; a row that wants the untyped
-identifier declares `persistentModelID` instead and is `Identifiable` by it. The typed form is
-what [fetching one object by identifier](#fetching-one-object-by-identifier) and
-[narrowing by a related model](#narrowing-by-a-related-model) take, and it exists because an
-untyped identifier in a predicate is a trap, described there.
+A row's identifiers are the models' own typed identifiers, so they lead back to the models. A
+row's `id` is filled from the model's `modelID`, and a link holds the related model's. To get from
+a row to a model, or from a row to the models related to its model, fetch by them:
+
+```swift
+let book = try Book.find(row.id, in: container)                   // Book?
+if let authorID = row.author {
+    let author = try Author.find(authorID, in: container)         // Author?
+}
+let siblings = try Book.include(\.author, is: authorID).results(in: container)
+```
+
+A row that wants the untyped identifier declares `persistentModelID` instead and is `Identifiable`
+by it. See [fetching one object by identifier](#fetching-one-object-by-identifier) for why the
+identifiers are typed and [narrowing by a related model](#narrowing-by-a-related-model) for the
+filter.
 
 Because properties are matched by name and resolved by the compiler, a row can select properties
 a model inherits from its parents, a row may be more visible than its model, and a wrong name or
