@@ -25,6 +25,30 @@ public extension PersistentModel {
             query()[range]
         }
     }
+
+    /// Constructs an empty query over this model type and invokes ``Query/include(_:is:)`` on that query.
+    static func include<Related: PersistentModel>(
+        _ keyPath: any KeyPath<Self, Related?> & Sendable,
+        is id: ModelID<Related>
+    ) -> Query<Self> {
+        query().include(keyPath, is: id)
+    }
+
+    /// Constructs an empty query over this model type and invokes ``Query/include(_:is:)`` on that query.
+    static func include<Related: PersistentModel>(
+        _ keyPath: any KeyPath<Self, Related> & Sendable,
+        is id: ModelID<Related>
+    ) -> Query<Self> {
+        query().include(keyPath, is: id)
+    }
+
+    /// Constructs an empty query over this model type and invokes ``Query/include(_:contains:)`` on that query.
+    static func include<Related: PersistentModel>(
+        _ keyPath: any KeyPath<Self, [Related]> & Sendable,
+        contains id: ModelID<Related>
+    ) -> Query<Self> {
+        query().include(keyPath, contains: id)
+    }
 }
 
 public extension PersistentModel {

@@ -1,12 +1,9 @@
 import Foundation
 import SwiftData
 
-/// Performs a projection on a ``QueryActor`` of its own and performs it again whenever the store
-/// records a change to one of the model types the projection reads, through
-/// ``Projection/changes(isolation:)``.
-///
-/// The first value arrives asynchronously, after the actor has fetched. A failed fetch or history
-/// read is logged and ends the observation; the wrapper keeps the last value it was given.
+/// The wrappers' form of ``Projection/changes(isolation:)``: on a ``QueryActor`` of their own, with
+/// values published on the main actor, and a failure logged rather than thrown so the wrapped value
+/// stays at the last good one.
 @MainActor
 func observe<T, Row, Value: Sendable>(
     _ projection: Projection<T, Row>,

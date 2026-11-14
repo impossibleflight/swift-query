@@ -38,8 +38,7 @@ public extension Projection {
 }
 
 extension Projection {
-    /// ``changes(isolation:)`` with the fetch left to the caller, so ``FetchFirst`` can fetch one
-    /// row where ``FetchAll`` fetches them all.
+    /// The fetch is a parameter so ``FetchFirst`` can fetch one row where ``FetchAll`` fetches them all.
     func changes<Value: Sendable>(
         isolation: isolated (any ModelActor) = #isolation,
         fetch: @escaping @Sendable (Projection, isolated any ModelActor) throws -> Value
