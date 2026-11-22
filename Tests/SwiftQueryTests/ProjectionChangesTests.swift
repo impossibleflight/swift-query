@@ -133,4 +133,22 @@ struct ProjectionChangesTests {
             for try await _ in await rows.changes(isolation: actor, fetch: { _, _ in throw Failure() }) {}
         }
     }
+
+    /// Persistent history names the subclass's entity, so a query on the parent has to watch it.
+    @available(macOS 26, iOS 26, watchOS 26, *)
+    @Test func changes_followsASubclassOfTheModelType() async throws {
+        let sessions = try ModelContainer(for: Session.self, Visit.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let actor = sessions.createQueryActor()
+        var iterator = await Session.sortBy(\.startedAt).select { $0.startedAt }.changes(isolation: actor).makeAsyncIterator()
+        let first = try await next(of: &iterator)
+        #expect(first.isEmpty)
+
+        let started = Date(timeIntervalSinceReferenceDate: 0)
+        try sessions.mainContext.transaction {
+            sessions.mainContext.insert(Visit(startedAt: started, mood: 3))
+        }
+
+        let next = try await next(of: &iterator)
+        #expect(next == [started])
+    }
 }

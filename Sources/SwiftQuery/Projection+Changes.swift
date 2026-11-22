@@ -103,17 +103,31 @@ extension ModelActor {
 
 extension Query {
     /// The names of the entities a fetch of this query reads: the model's own entity and the
-    /// destination of every prefetched relationship, as `joining` records them.
+    /// destination of every prefetched relationship, as `joining` records them, each with all
+    /// its subentities, since persistent history names a subclass's change by the subclass.
     func entityNames(in schema: Schema) -> Set<String> {
         let root = Schema.entityName(for: T.self)
         var names: Set<String> = [root]
-        guard let entity = schema.entities.first(where: { $0.name == root }) else { return names }
-        for keyPath in relationshipKeyPaths {
-            let keyPath = keyPath as AnyKeyPath
-            for relationship in entity.relationships where relationship.keypath == keyPath {
-                names.insert(relationship.destination)
+        if let entity = schema.entities.first(where: { $0.name == root }) {
+            for keyPath in relationshipKeyPaths {
+                let keyPath = keyPath as AnyKeyPath
+                for relationship in entity.relationships where relationship.keypath == keyPath {
+                    names.insert(relationship.destination)
+                }
             }
         }
-        return names
+        return names.union(schema.entities.filter { names.contains(ancestorOf: $0, in: schema) }.map(\.name))
+    }
+}
+
+private extension Set<String> {
+    /// Whether any entity above `entity` in the inheritance chain is named in this set.
+    func contains(ancestorOf entity: Schema.Entity, in schema: Schema) -> Bool {
+        var parent = entity.superentityName
+        while let name = parent {
+            if contains(name) { return true }
+            parent = schema.entities.first(where: { $0.name == name })?.superentityName
+        }
+        return false
     }
 }
