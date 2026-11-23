@@ -18,12 +18,12 @@ import Foundation
 ///
 /// - Note: This type is primarily used internally by `Query`. Most users should use
 ///   the `Query.sortBy()` methods instead of creating `AnySortDescriptor` instances directly.
-public struct AnySortDescriptor<Compared> {
+public struct AnySortDescriptor<Compared>: Sendable {
     /// The current sort order for this descriptor.
     public var order: SortOrder = .forward
     
     /// Function that creates `SortDescriptor` instances with the specified order.
-    public let builder: (SortOrder) -> SortDescriptor<Compared>
+    public let builder: @Sendable (SortOrder) -> SortDescriptor<Compared>
 
     internal var sortDescriptor: SortDescriptor<Compared> {
         builder(order)

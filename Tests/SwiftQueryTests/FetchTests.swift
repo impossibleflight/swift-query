@@ -298,4 +298,26 @@ struct FetchTests {
         #expect(try query.isEmpty(in: modelContainer) == true)
         #expect(try query.count(in: modelContainer) == 0)
     }
+
+    @Test func find_returnsTheObjectWithThatIdentifier() throws {
+        let first = try Person.include(#Predicate { $0.name == "Karina" }).first(in: modelContainer)
+        let karina = try #require(first)
+
+        let found = try Query<Person>().find(karina.modelID, in: modelContainer)
+        #expect(found === karina)
+
+        let excluded = try Query<Person>().include(#Predicate { $0.age < 18 }).find(karina.modelID, in: modelContainer)
+        #expect(excluded == nil)
+    }
+
+    @Test func find_isNilOnceTheObjectIsGone() throws {
+        let first = try Person.include(#Predicate { $0.name == "Karina" }).first(in: modelContainer)
+        let karina = try #require(first)
+        let id = karina.modelID
+        modelContainer.mainContext.delete(karina)
+        try modelContainer.mainContext.save()
+
+        let found = try Query<Person>().find(id, in: modelContainer)
+        #expect(found == nil)
+    }
 }

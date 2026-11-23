@@ -25,6 +25,30 @@ public extension PersistentModel {
             query()[range]
         }
     }
+
+    /// Constructs an empty query over this model type and invokes ``Query/include(_:is:)`` on that query.
+    static func include<Related: PersistentModel>(
+        _ keyPath: any KeyPath<Self, Related?> & Sendable,
+        is id: ModelID<Related>
+    ) -> Query<Self> {
+        query().include(keyPath, is: id)
+    }
+
+    /// Constructs an empty query over this model type and invokes ``Query/include(_:is:)`` on that query.
+    static func include<Related: PersistentModel>(
+        _ keyPath: any KeyPath<Self, Related> & Sendable,
+        is id: ModelID<Related>
+    ) -> Query<Self> {
+        query().include(keyPath, is: id)
+    }
+
+    /// Constructs an empty query over this model type and invokes ``Query/include(_:contains:)`` on that query.
+    static func include<Related: PersistentModel>(
+        _ keyPath: any KeyPath<Self, [Related]> & Sendable,
+        contains id: ModelID<Related>
+    ) -> Query<Self> {
+        query().include(keyPath, contains: id)
+    }
 }
 
 public extension PersistentModel {
@@ -69,12 +93,31 @@ public extension PersistentModel {
 
 public extension PersistentModel {
     /// Constructs an empty query over this model type and invokes ``Query/prefetchRelationships(_:)`` on that query.
-    static func prefetchRelationships(_ keyPaths: PartialKeyPath<Self>...) -> Query<Self> {
+    static func prefetchRelationships(_ keyPaths: (PartialKeyPath<Self> & Sendable)...) -> Query<Self> {
         query().prefetchRelationships(keyPaths)
     }
 
     /// Constructs an empty query over this model type and invokes ``Query/fetchKeyPaths(_:)`` on that query.
-    static func fetchKeyPaths(_ keyPaths: PartialKeyPath<Self>...) -> Query<Self> {
+    static func fetchKeyPaths(_ keyPaths: (PartialKeyPath<Self> & Sendable)...) -> Query<Self> {
         query().fetchKeyPaths(keyPaths)
+    }
+}
+
+public extension PersistentModel {
+    /// Constructs an empty query over this model type and invokes ``Query/joining(_:)`` on that query.
+    static func joining<Related>(_ keyPath: any KeyPath<Self, Related> & Sendable) -> Join<Self, Related> {
+        Query<Self>().joining(keyPath)
+    }
+
+    /// Constructs an empty query over this model type and invokes ``Query/joining(_:)`` on that query.
+    static func joining<each Related>(
+        _ keyPaths: repeat any KeyPath<Self, each Related> & Sendable
+    ) -> MultiJoin<Self, repeat each Related> {
+        Query<Self>().joining(repeat each keyPaths)
+    }
+
+    /// Constructs an empty query over this model type and invokes ``Query/select(_:)`` on that query.
+    static func select<Row: Sendable>(_ transform: @escaping @Sendable (Self) -> Row) -> Projection<Self, Row> {
+        Query<Self>().select(transform)
     }
 }

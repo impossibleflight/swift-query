@@ -16,7 +16,7 @@ public extension Query {
     func first(in container: ModelContainer) throws -> T? {
         var descriptor = self
         descriptor.range = 0..<1
-        let result = try container.mainContext.fetch(fetchDescriptor)
+        let result = try container.mainContext.fetch(descriptor.fetchDescriptor)
         return result.first
     }
 
@@ -145,5 +145,24 @@ public extension Query {
         results.forEach {
             container.mainContext.delete($0)
         }
+    }
+
+    /// Returns the object with `id` that matches the query, or `nil` if there is none.
+    ///
+    /// SwiftData compares an identifier in a predicate by its row number alone, so this fetches
+    /// by the identifier and then confirms the result's own identifier is the one asked for. A
+    /// record that is gone, or an identifier from another container, gives `nil`, never another
+    /// record. See ``PersistentModel/find(_:in:)`` for the static form.
+    ///
+    /// ```swift
+    /// let author = try Author.include(#Predicate { $0.born != nil }).find(id, in: container)
+    /// ```
+    func find(_ id: ModelID<T>, in container: ModelContainer) throws -> T? {
+        try find(id.persistentIdentifier, in: container)
+    }
+
+    /// ``find(_:in:)`` for an identifier that arrived untyped; one of another kind of model gives `nil`.
+    func find(_ id: PersistentIdentifier, in container: ModelContainer) throws -> T? {
+        try include(#Predicate { $0.persistentModelID == id }).first(in: container).flatMap { $0.persistentModelID == id ? $0 : nil }
     }
 }

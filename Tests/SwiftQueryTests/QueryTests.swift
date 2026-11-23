@@ -327,3 +327,17 @@ struct QueryTests {
         #expect(query.propertiesToFetch.contains(\Person.age))
     }
 }
+
+extension QueryTests {
+    /// A query built on the main actor is handed to a query actor by the projection wrappers.
+    @Test func isSendable() {
+        func requiresSendable(_: some Sendable) {}
+        requiresSendable(
+            Person
+                .include(#Predicate { $0.age >= 18 })
+                .sortBy(\.name)
+                .prefetchRelationships(\.name)
+                .fetchKeyPaths(\.age)
+        )
+    }
+}

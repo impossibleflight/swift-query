@@ -4,7 +4,7 @@
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fimpossibleflight%2Fswift-query%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/impossibleflight/swift-query)
 
 
-A simple query language for SwiftData with automatic support for Swift concurrency.
+A simple query language for SwiftData with automatic support for Swift concurrency, and rows of values selected from models and their relationships.
 
 ## What is SwiftQuery?
 
@@ -80,6 +80,21 @@ Queries can be narrowed by selecting or excluding candidate objects using predic
 Person.include(#Predicate { $0.name == "Jack" })
 Person.exclude(#Predicate { $0.age > 25 })
 ```
+
+#### Narrowing by a related model
+
+To narrow by a relationship, pass its key path and the typed identifier of the related model:
+
+```swift
+Book.include(\.author, is: authorID)          // author: Author?
+Author.include(\.books, contains: bookID)      // books: [Book]
+```
+
+These exist because SwiftData translates a comparison on an identifier in a predicate to a match
+on the row number alone, with no check of the model type or the store. A hand-written
+`#Predicate { $0.author?.persistentModelID == someID }` given a `Publisher`'s identifier matches
+whichever author sits in that row. With a `ModelID<Author>` the kind is checked by the compiler.
+An identifier from another container matches nothing, as SwiftData does check the store.
 
 #### Creating compound refinements
 
@@ -204,6 +219,32 @@ let anyone = try Person.any(in: modelContainer)
 ```
 
 
+#### Fetching one object by identifier
+
+SwiftData gives a model `persistentModelID`, an untyped `PersistentIdentifier`. SwiftQuery adds
+`modelID`, the same identifier typed by the model it names, a `ModelID<Author>` for an author.
+`find` takes one and returns the object, or `nil`:
+
+```swift
+let id: ModelID<Author> = author.modelID
+
+let found = try Author.find(id, in: modelContainer)     // Author?
+```
+
+The identifier is a value, so it can be kept, passed between actors, stored in a row, or encoded,
+and the object fetched again later. An untyped `PersistentIdentifier`, from SwiftUI's `@Query` or
+anywhere else SwiftData hands one out, becomes typed through `ModelID<Author>(identifier)`, which
+is `nil` when the identifier names another kind of model; decoding checks the same way. Where
+models inherit, `ModelID<Session>(visitID)` carries a subclass's identifier as its parent's, and a
+fetch of the parent finds the subclass's model.
+
+`find` exists because SwiftData's own lookups cannot be trusted with an identifier of unknown
+provenance. A predicate comparing an identifier matches by row number alone, so another kind of
+model's identifier returns a stranger, and `ModelContext.model(for:)` on a deleted record's
+identifier returns an object that crashes on first use. `find` fetches by the identifier and then
+confirms the result's own identifier is the one asked for, so a record that is gone, an identifier
+of another kind, or one from another container gives `nil`, never another record.
+
 #### Fetching all results
 
 When we want to fetch all query results in memory, we can use `results`:
@@ -314,6 +355,112 @@ effectively makes it impossible to use the models returned from a query incorrec
 a multi-context environment, thus guaranteeing the SwiftData concurrency contract at 
 compile time.     
 
+### Rows
+
+Models are tied to the context that fetched them. When a value is wanted instead, for a view
+model, a feature's state, or anything that crosses an actor, declare a row: a struct holding the
+properties a screen needs, under the names the model uses, and name the model it is read from:
+
+```swift
+@Selection(of: Book.self)
+struct BookRow {
+    let id: ModelID<Book>
+    let title: String
+    let genre: Genre
+    let author: ModelID<Author>?
+}
+```
+
+`@Selection` adds `init(_ model: Book)`, which assigns each property from the model's property of
+the same name, and makes the row `Hashable`, `Sendable` and `Identifiable`. Related models arrive
+as typed identifiers rather than objects, so a row can leave the context safely. A property with
+an initial value belongs to the row alone and is left out of the initializer.
+
+A row's identifiers are the models' own typed identifiers, so they lead back to the models. A
+row's `id` is filled from the model's `modelID`, and a link holds the related model's. To get from
+a row to a model, or from a row to the models related to its model, fetch by them:
+
+```swift
+let book = try Book.find(row.id, in: container)                   // Book?
+if let authorID = row.author {
+    let author = try Author.find(authorID, in: container)         // Author?
+}
+let siblings = try Book.include(\.author, is: authorID).results(in: container)
+```
+
+A row that wants the untyped identifier declares `persistentModelID` instead and is `Identifiable`
+by it. See [fetching one object by identifier](#fetching-one-object-by-identifier) for why the
+identifiers are typed and [narrowing by a related model](#narrowing-by-a-related-model) for the
+filter.
+
+Because properties are matched by name and resolved by the compiler, a row can select properties
+a model inherits from its parents, a row may be more visible than its model, and a wrong name or
+type is a compile error on the row. The initializer is internal unless `initializer: .public` is
+passed, so rows are built and queries composed in the module that owns the models.
+
+The mapping from a stored type to the type a row holds is the `SnapshotConvertible` protocol: a
+value type maps to itself, and optionals and arrays map their contents. Models, and optionals and
+arrays of models, map to typed identifiers. The library conforms the standard value types; a custom
+stored type, such as an enum, needs a one-line conformance:
+
+```swift
+extension Genre: SnapshotConvertible {}
+```
+
+A stored type without one is a compile error at the row, so a row can never silently hold
+something that cannot cross an actor.
+
+### Joins and projections
+
+A projection maps each fetched model into a row. `select` takes the row's initializer, a key path,
+or a closure, and runs inside the context that performs the fetch, so it may read anything on the
+model, and only the rows leave the context:
+
+```swift
+let rows = try Book.sortBy(\.title).select(BookRow.init).results(in: container)
+let titles = try Book.sortBy(\.title).select(\.title).results(in: container)
+```
+
+`joining` names a relationship the projection reads. It is prefetched, so the related objects
+arrive with the results rather than as a fault per row, and its value is handed to `select`
+beside the model, typed as the relationship is declared: a model, an optional, or an array. The
+closure assembles whatever the screen needs from the two:
+
+```swift
+struct BookWithAuthor: Hashable, Sendable {
+    var book: BookRow
+    var authorName: String?
+}
+
+let rows = try Book
+    .sortBy(\.title)
+    .joining(\.author)
+    .select { book, author in
+        BookWithAuthor(book: BookRow(book), authorName: author?.name)
+    }
+    .results(in: container)
+```
+
+Several relationships go in one call and arrive in the same order:
+
+```swift
+Book.joining(\.author, \.tags).select { book, author, tags in ... }
+```
+
+This is not a database join. SwiftData fetches the related objects and the closure sees them in
+memory, so an aggregate over a to-many relationship, such as a count of an author's books, is
+computed in memory too.
+
+A projection performs like a query: `results`, `first` and `last`, on the main actor with
+`in:` or inside any model actor. Because rows are `Sendable`, a projection performed in a
+`QueryActor` can return them:
+
+```swift
+let rows = try await container.createQueryActor().perform { _ in
+    try Book.joining(\.author).select { BookWithAuthor(book: BookRow($0), authorName: $1?.name) }.results()
+}
+```
+
 ### Observable Queries
 
 Often in the context of view models or views we'd like to passively observe a Query and be notified of changes. SwiftQuery provides property wrappers that automatically update when the underlying data changes. These wrappers use Swift's `@Observable` framework and notify observers whenever the persistent store changes, even if that happens as a result of something like iCloud sync.
@@ -381,6 +528,58 @@ struct PeopleFeature {
 }
 ```
 
+#### Observing rows
+
+`FetchAll` and `FetchFirst` also take a projection. The wrapped value is then the projected rows,
+or the first one, rather than models:
+
+```swift
+@Observable
+final class LibraryViewModel {
+    @ObservationIgnored
+    @FetchAll(Book.sortBy(\.title).joining(\.author).select { book, author in
+        BookWithAuthor(book: BookRow(book), authorName: author?.name)
+    })
+    var books: [BookWithAuthor]
+
+    @ObservationIgnored
+    @FetchFirst(Author.include(#Predicate { $0.name == "Ursula" }).select(AuthorRow.init))
+    var ursula: AuthorRow?
+}
+```
+
+Two things differ from observing models. The fetch and the `select` closure run on a
+`QueryActor`, off the main thread, so the first value arrives asynchronously: the wrapped value is
+empty, or `nil`, until it does. And the wrapper re-fetches only when the store records a change
+to a type the projection reads: the model type and every joined type. It finds out which types
+changed by reading SwiftData's persistent history after each store change notification, so
+local saves, other processes and sync are all covered, and a save to an unrelated model type
+costs nothing. If the `select` closure reads a relationship, join it, or changes to it will not
+be noticed.
+
+#### Observing rows on your own actor
+
+The same observation is available as an async sequence, for code that already runs inside a model
+actor and wants to act on the rows rather than display them. `changes()` on a projection delivers
+the rows now and again after every change to a type the projection reads, performed on the
+calling actor. The first fetch starts when `changes()` is called, not when iteration begins. Each call is independent, with its own view of the persistent history, so any
+number of sequences can be live at once:
+
+```swift
+@ModelActor
+actor Library {
+    func watchUnread() async throws {
+        for try await rows in Book.include(#Predicate { !$0.isRead }).select(BookRow.init).changes() {
+            // rows is [BookRow], fetched on this actor
+        }
+    }
+}
+```
+
+Unlike the wrappers, which log a failed fetch and keep their last value, the sequence throws it,
+so a caller deciding state on the rows sees the failure. To take the current rows once, read the
+first element and stop iterating; ending the iteration ends the observation.
+
 #### Dependency Injection
 
 All fetch wrappers use [Swift Dependencies](https://github.com/pointfreeco/swift-dependencies) to access the model container. In your app setup:
@@ -434,4 +633,8 @@ swift-query is licensed under the MIT license. See [LICENSE](LICENSE)
 
 ## Acknowledgements
 
-Inspired by [QueryKit](https://github.com/QueryKit/QueryKit)
+The query language is inspired by [QueryKit](https://github.com/QueryKit/QueryKit).
+
+Rows and `@Selection` follow the shape of [SQLiteData](https://github.com/pointfreeco/sqlite-data)
+by Point-Free, whose `@Selection` showed how a query can land directly in a value type a screen
+declares.
