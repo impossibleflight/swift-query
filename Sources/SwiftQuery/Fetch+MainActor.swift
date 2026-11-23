@@ -149,19 +149,16 @@ public extension Query {
 
     /// Returns the object with `id` that matches the query, or `nil` if there is none.
     ///
-    /// SwiftData compares an identifier in a predicate by its row number alone, so this fetches
-    /// by the identifier and then confirms the result's own identifier is the one asked for. A
-    /// record that is gone, or an identifier from another container, gives `nil`, never another
-    /// record. See ``PersistentModel/find(_:in:)`` for the static form.
+    /// SwiftData compares an identifier in a predicate by its row number alone, without checking
+    /// which kind of model it names: a `Book`'s identifier in a predicate over `Author` matches
+    /// the author in the same row. So this fetches by the identifier and then confirms the
+    /// result's own identifier is the one asked for. An identifier of another kind of model, of a
+    /// record that is gone, or from another container gives `nil`, never another record. See
+    /// ``PersistentModel/find(_:in:)-(PersistentIdentifier,_)`` for the static form.
     ///
     /// ```swift
     /// let author = try Author.include(#Predicate { $0.born != nil }).find(id, in: container)
     /// ```
-    func find(_ id: ModelID<T>, in container: ModelContainer) throws -> T? {
-        try find(id.persistentIdentifier, in: container)
-    }
-
-    /// ``find(_:in:)`` for an identifier that arrived untyped; one of another kind of model gives `nil`.
     func find(_ id: PersistentIdentifier, in container: ModelContainer) throws -> T? {
         try include(#Predicate { $0.persistentModelID == id }).first(in: container).flatMap { $0.persistentModelID == id ? $0 : nil }
     }

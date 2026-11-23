@@ -215,12 +215,7 @@ public extension Query {
     }
 
     /// Returns the object with `id` that matches the query from the current model actor's context,
-    /// or `nil` if there is none. See ``find(_:in:)`` for the check this makes.
-    func find(_ id: ModelID<T>, isolation: isolated (any ModelActor) = #isolation) throws -> T? {
-        try find(id.persistentIdentifier, isolation: isolation)
-    }
-
-    /// ``find(_:isolation:)`` for an identifier that arrived untyped; one of another kind of model gives `nil`.
+    /// or `nil` if there is none. See ``find(_:in:)-(PersistentIdentifier,_)`` for the check this makes.
     func find(_ id: PersistentIdentifier, isolation: isolated (any ModelActor) = #isolation) throws -> T? {
         try include(#Predicate { $0.persistentModelID == id }).first(isolation: isolation).flatMap { $0.persistentModelID == id ? $0 : nil }
     }

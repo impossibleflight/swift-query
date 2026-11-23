@@ -49,16 +49,7 @@ public extension PersistentModel {
         try query().delete(in: container)
     }
 
-    /// Constructs an empty query over this model type and invokes ``Query/find(_:in:)`` on that query.
-    ///
-    /// ```swift
-    /// if let author = try Author.find(row.author, in: container) { ... }
-    /// ```
-    static func find(_ id: ModelID<Self>, in container: ModelContainer) throws -> Self? {
-        try query().find(id, in: container)
-    }
-
-    /// Constructs an empty query over this model type and invokes ``Query/find(_:in:)`` on that query.
+    /// Constructs an empty query over this model type and invokes ``Query/find(_:in:)-(PersistentIdentifier,_)`` on that query.
     static func find(_ id: PersistentIdentifier, in container: ModelContainer) throws -> Self? {
         try query().find(id, in: container)
     }
@@ -118,12 +109,7 @@ public extension PersistentModel {
         try query().delete()
     }
 
-    /// Constructs an empty query over this model type and invokes ``Query/find(_:isolation:)`` on that query.
-    static func find(_ id: ModelID<Self>, isolation: isolated (any ModelActor) = #isolation) throws -> Self? {
-        try query().find(id, isolation: isolation)
-    }
-
-    /// Constructs an empty query over this model type and invokes ``Query/find(_:isolation:)`` on that query.
+    /// Constructs an empty query over this model type and invokes ``Query/find(_:isolation:)-(PersistentIdentifier,_)`` on that query.
     static func find(_ id: PersistentIdentifier, isolation: isolated (any ModelActor) = #isolation) throws -> Self? {
         try query().find(id, isolation: isolation)
     }

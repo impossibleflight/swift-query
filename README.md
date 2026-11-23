@@ -81,21 +81,6 @@ Person.include(#Predicate { $0.name == "Jack" })
 Person.exclude(#Predicate { $0.age > 25 })
 ```
 
-#### Narrowing by a related model
-
-To narrow by a relationship, pass its key path and the typed identifier of the related model:
-
-```swift
-Book.include(\.author, is: authorID)          // author: Author?
-Author.include(\.books, contains: bookID)      // books: [Book]
-```
-
-These exist because SwiftData translates a comparison on an identifier in a predicate to a match
-on the row number alone, with no check of the model type or the store. A hand-written
-`#Predicate { $0.author?.persistentModelID == someID }` given a `Publisher`'s identifier matches
-whichever author sits in that row. With a `ModelID<Author>` the kind is checked by the compiler.
-An identifier from another container matches nothing, as SwiftData does check the store.
-
 #### Creating compound refinements
 
 Multiple `include()` and `exclude()` calls create compound predicates using AND logic, allowing you to build complex filters:
@@ -221,29 +206,27 @@ let anyone = try Person.any(in: modelContainer)
 
 #### Fetching one object by identifier
 
-SwiftData gives a model `persistentModelID`, an untyped `PersistentIdentifier`. SwiftQuery adds
-`modelID`, the same identifier typed by the model it names, a `ModelID<Author>` for an author.
-`find` takes one and returns the object, or `nil`:
+`find` takes a model's `persistentModelID` and returns the object, or `nil`:
 
 ```swift
-let id: ModelID<Author> = author.modelID
-
-let found = try Author.find(id, in: modelContainer)     // Author?
+let found = try Author.find(author.persistentModelID, in: modelContainer)     // Author?
 ```
 
-The identifier is a value, so it can be kept, passed between actors, stored in a row, or encoded,
-and the object fetched again later. An untyped `PersistentIdentifier`, from SwiftUI's `@Query` or
-anywhere else SwiftData hands one out, becomes typed through `ModelID<Author>(identifier)`, which
-is `nil` when the identifier names another kind of model; decoding checks the same way. Where
-models inherit, `ModelID<Session>(visitID)` carries a subclass's identifier as its parent's, and a
-fetch of the parent finds the subclass's model.
+The identifier is a value, so it can be kept, passed between actors or encoded, and the object
+fetched again later.
 
 `find` exists because SwiftData's own lookups cannot be trusted with an identifier of unknown
-provenance. A predicate comparing an identifier matches by row number alone, so another kind of
-model's identifier returns a stranger, and `ModelContext.model(for:)` on a deleted record's
-identifier returns an object that crashes on first use. `find` fetches by the identifier and then
-confirms the result's own identifier is the one asked for, so a record that is gone, an identifier
-of another kind, or one from another container gives `nil`, never another record.
+provenance. SwiftData compares an identifier in a predicate by its row number alone, without
+checking which kind of model it names: a hand-written `#Predicate { $0.persistentModelID == id }`
+over `Author`, given a `Book`'s identifier, returns whichever author sits in the same row. It does
+check the store, so an identifier from another container matches nothing. And
+`ModelContext.model(for:)` on a deleted record's identifier returns an object that crashes on
+first use. `find` fetches by the identifier and then confirms the result's own identifier is the
+one asked for, so a record that is gone, an identifier of another kind, or one from another
+container gives `nil`, never another record.
+
+Rows hold typed identifiers that rule out the wrong kind at compile time; see
+[from a row back to models](#from-a-row-back-to-models).
 
 #### Fetching all results
 
@@ -376,22 +359,8 @@ the same name, and makes the row `Hashable`, `Sendable` and `Identifiable`. Rela
 as typed identifiers rather than objects, so a row can leave the context safely. A property with
 an initial value belongs to the row alone and is left out of the initializer.
 
-A row's identifiers are the models' own typed identifiers, so they lead back to the models. A
-row's `id` is filled from the model's `modelID`, and a link holds the related model's. To get from
-a row to a model, or from a row to the models related to its model, fetch by them:
-
-```swift
-let book = try Book.find(row.id, in: container)                   // Book?
-if let authorID = row.author {
-    let author = try Author.find(authorID, in: container)         // Author?
-}
-let siblings = try Book.include(\.author, is: authorID).results(in: container)
-```
-
 A row that wants the untyped identifier declares `persistentModelID` instead and is `Identifiable`
-by it. See [fetching one object by identifier](#fetching-one-object-by-identifier) for why the
-identifiers are typed and [narrowing by a related model](#narrowing-by-a-related-model) for the
-filter.
+by it.
 
 Because properties are matched by name and resolved by the compiler, a row can select properties
 a model inherits from its parents, a row may be more visible than its model, and a wrong name or
@@ -409,6 +378,43 @@ extension Genre: SnapshotConvertible {}
 
 A stored type without one is a compile error at the row, so a row can never silently hold
 something that cannot cross an actor.
+
+#### From a row back to models
+
+A row's identifiers are typed by the model they name: `ModelID<Author>` for an author. A model's
+`modelID` is its `persistentModelID`, typed. A row's `id` is filled from the model's `modelID`, and
+a link holds the related model's. Typed identifiers exist because SwiftData matches an identifier
+in a predicate by row number alone (see
+[fetching one object by identifier](#fetching-one-object-by-identifier)): a `ModelID<Author>`
+cannot be a book's, because the compiler refuses it.
+
+To get from a row to its model, or to the models related to it, fetch by them:
+
+```swift
+let book = try Book.find(row.id, in: container)                   // Book?
+if let authorID = row.author {
+    let author = try Author.find(authorID, in: container)         // Author?
+    let siblings = try Book.include(\.author, is: authorID).results(in: container)
+}
+```
+
+`include(_:is:)` narrows a query to objects whose relationship is the model with that identifier,
+and `include(_:contains:)` to objects whose to-many relationship contains it:
+
+```swift
+Book.include(\.author, is: authorID)          // author: Author?
+Author.include(\.books, contains: bookID)      // books: [Book]
+```
+
+These take only typed identifiers. A predicate comparing an untyped identifier of the wrong kind
+matches a stranger, and here nothing can check it afterwards, because the related model is never
+fetched.
+
+An untyped `PersistentIdentifier`, from SwiftUI's `@Query` or anywhere else SwiftData hands one
+out, becomes typed through `ModelID<Author>(identifier)`, which is `nil` when the identifier names
+another kind of model; decoding checks the same way. Where models inherit,
+`ModelID<Session>(visitID)` carries a subclass's identifier as its parent's, and a fetch of the
+parent finds the subclass's model.
 
 ### Joins and projections
 
