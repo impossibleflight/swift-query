@@ -7,7 +7,7 @@ import SwiftData
 /// number alone, so a `Book`'s identifier handed to a query over `Author` matches whichever author
 /// sits in that row. A `ModelID<Author>` cannot be a book's: the compiler refuses it. Rows declared
 /// with ``Selection(of:initializer:)`` hold their own identifier and their links as typed
-/// identifiers, and ``PersistentModel/find(_:in:)`` fetches one model by its typed identifier.
+/// identifiers, and ``PersistentModel/find(_:in:)-(ModelID<Self>,_)`` fetches one model by its typed identifier.
 ///
 /// ```swift
 /// let id: ModelID<Author> = author.modelID
@@ -25,7 +25,7 @@ public struct ModelID<Model: PersistentModel>: Hashable, Sendable {
     /// Types an identifier that arrived untyped, or `nil` if it names another kind of model.
     ///
     /// The check is on the identifier's entity name, so it cannot tell a gone record from a live
-    /// one; ``PersistentModel/find(_:in:)`` can.
+    /// one; ``PersistentModel/find(_:in:)-(ModelID<Self>,_)`` can.
     public init?(_ persistentIdentifier: PersistentIdentifier) {
         guard persistentIdentifier.entityName == Schema.entityName(for: Model.self) else { return nil }
         self.persistentIdentifier = persistentIdentifier
